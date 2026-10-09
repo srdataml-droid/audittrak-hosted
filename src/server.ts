@@ -58,7 +58,11 @@ export function buildServer(
           code:
             typeof code === "string" && /^[A-Z0-9_]+$/.test(code)
               ? code
-              : "DATABASE_UNAVAILABLE",
+              : /timeout|timed out/i.test(String((error as Error).message))
+                ? "CONNECTION_TIMEOUT"
+                : /terminated|closed/i.test(String((error as Error).message))
+                  ? "CONNECTION_CLOSED"
+                  : "DATABASE_UNAVAILABLE",
         });
     }
   });
