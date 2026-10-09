@@ -39,15 +39,32 @@ export function buildServer(
       ? new MonoTransactionsAdapter(process.env.MONO_SECRET_KEY)
       : undefined);
 
-  app.get("/health", async () => ({
-    status: "ok",
-    service: "audittrak-evidence-service",
-  }));
+  app.get("/health", async (request, reply) => {
+    try {
+      await database.one("SELECT 1 AS alive");
+      return {
+        status: "ok",
+        service: "audittrak-evidence-service",
+        database: "connected",
+      };
+    } catch (error) {
+      request.log.error(error);
+      const code = (error as { code?: unknown }).code;
+      return reply
+        .code(503)
+        .send({
+          status: "unavailable",
+          database: "unavailable",
+          code:
+            typeof code === "string" && /^[A-Z0-9_]+$/.test(code)
+              ? code
+              : "DATABASE_UNAVAILABLE",
+        });
+    }
+  });
 
   app.get("/assets/audittrak-five-apps.png", async (_request, reply) => {
-    const image = await readFile(
-      publicFile("audittrak-five-apps.png"),
-    );
+    const image = await readFile(publicFile("audittrak-five-apps.png"));
     return reply.type("image/png").send(image);
   });
 
