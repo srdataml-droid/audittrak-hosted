@@ -1,0 +1,618 @@
+[
+  {
+    "id": "job-1-match",
+    "title": "The records line up",
+    "service": "Logo design",
+    "humanQuestion": "Do these clues describe one job?",
+    "prototypeExpectation": "Agreement, invoice, and payment agree on amount and customer name.",
+    "limitation": "A match is a useful check, not proof that every statement is true.",
+    "appRecords": {
+      "chat": {
+        "app": "Upwork-inspired marketplace (fictional)",
+        "text": "Amina Okafor: Can you make a logo for NGN 250,000? Freelancer: Yes. Client: Agreed—please send the offer through Upwork. Freelancer: Accepted. Upwork: Contract funded; milestone released after approval.",
+        "messages": [
+          {
+            "speaker": "Amina",
+            "text": "Can you design a logo for NGN 250,000?"
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "Yes. I’ll send the offer through the platform."
+          },
+          {
+            "speaker": "Amina",
+            "text": "Agreed."
+          },
+          {
+            "speaker": "Platform",
+            "text": "Contract funded; milestone released after approval."
+          }
+        ]
+      },
+      "agreement": {
+        "app": "Google Drive (simulated, optional)",
+        "file": "Logo_design_Agreement.pdf",
+        "client": "Amina Okafor",
+        "service": "Logo design",
+        "feeMinor": 25000000,
+        "currency": "NGN",
+        "date": "2026-09-01",
+        "customer": "Amina Okafor"
+      },
+      "invoice": {
+        "app": "Upwork contract/milestone invoice (simulated)",
+        "invoiceNumber": "INV-101",
+        "customer": "Amina Okafor",
+        "service": "Logo design",
+        "totalMinor": 25000000,
+        "currency": "NGN",
+        "issuedDate": "2026-09-02"
+      },
+      "bank": {
+        "app": "Upwork payment record (simulated)",
+        "lines": [
+          {
+            "date": "2026-09-05",
+            "direction": "credit",
+            "amountMinor": 25000000,
+            "currency": "NGN",
+            "name": "AMINA OKAFOR",
+            "reference": "LOGO-101"
+          }
+        ]
+      },
+      "review": {
+        "app": "AuditTrak review (simulated)",
+        "summary": "Agreement, invoice, and payment agree on amount and customer name."
+      }
+    },
+    "reconciliationRequest": {
+      "eventId": "evt_case_1",
+      "agreement": {
+        "id": "agr_job_1",
+        "kind": "agreement",
+        "source": "demo",
+        "counterparty": "Amina Okafor",
+        "service": "Logo design",
+        "amount": {
+          "amountMinor": 25000000,
+          "currency": "NGN"
+        },
+        "effectiveDate": "2026-09-01",
+        "dueDate": "2026-10-01",
+        "reference": "LOGO-101"
+      },
+      "invoice": {
+        "id": "inv_job_1",
+        "kind": "invoice",
+        "source": "demo",
+        "invoiceNumber": "INV-101",
+        "counterparty": "Amina Okafor",
+        "service": "Logo design",
+        "amount": {
+          "amountMinor": 25000000,
+          "currency": "NGN"
+        },
+        "issuedDate": "2026-09-02",
+        "dueDate": "2026-10-01",
+        "reference": "LOGO-101"
+      },
+      "payment": {
+        "id": "pay_job_1",
+        "kind": "payment",
+        "source": "demo",
+        "transactionId": "txn_case_1",
+        "direction": "credit",
+        "counterparty": "AMINA OKAFOR",
+        "description": "Logo design payment",
+        "amount": {
+          "amountMinor": 25000000,
+          "currency": "NGN"
+        },
+        "transactionDate": "2026-09-05",
+        "reference": "LOGO-101",
+        "service": "Logo design"
+      },
+      "amountToleranceMinor": 0,
+      "timingWindowDays": 90
+    },
+    "expectedStatus": "consistent",
+    "customer": "Amina Okafor",
+    "story": "Amina hires a designer for a logo.",
+    "channel": "Freelance marketplace",
+    "channelExplanation": "Use the marketplace messages, contract/milestone, and platform payment records. Do not move marketplace clients off-platform."
+  },
+  {
+    "id": "job-2-scope-change",
+    "title": "The job scope changed",
+    "service": "Website build",
+    "humanQuestion": "Was the extra work approved?",
+    "prototypeExpectation": "Invoice includes extra hosting beyond the original agreement; reviewer should check the later approval.",
+    "limitation": "The first version does not interpret chat history as a formal amended agreement.",
+    "appRecords": {
+      "chat": {
+        "app": "Fiverr-inspired marketplace (fictional)",
+        "text": "Chidi Eze: Build a website for NGN 300,000. Freelancer: Hosting would add NGN 50,000. Client: Okay, add it to the contract. Upwork: Updated milestone submitted for review.",
+        "messages": [
+          {
+            "speaker": "Chidi",
+            "text": "Build my website for NGN 300,000."
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "Hosting adds NGN 50,000."
+          },
+          {
+            "speaker": "Chidi",
+            "text": "Okay, please add hosting to the contract."
+          },
+          {
+            "speaker": "Platform",
+            "text": "Updated milestone submitted for review."
+          }
+        ]
+      },
+      "agreement": {
+        "app": "Google Drive (simulated, optional)",
+        "file": "Website_build_Agreement.pdf",
+        "service": "Website build",
+        "feeMinor": 30000000,
+        "currency": "NGN",
+        "client": "Chidi Eze",
+        "customer": "Chidi Eze",
+        "date": "2026-09-08"
+      },
+      "invoice": {
+        "app": "Upwork contract/milestone invoice (simulated)",
+        "invoiceNumber": "INV-202",
+        "service": "Website build",
+        "totalMinor": 35000000,
+        "currency": "NGN",
+        "customer": "Chidi Eze",
+        "issuedDate": "2026-09-09"
+      },
+      "bank": {
+        "app": "Upwork payment record (simulated)",
+        "lines": [
+          {
+            "date": "2026-09-12",
+            "direction": "credit",
+            "amountMinor": 35000000,
+            "currency": "NGN",
+            "name": "CHIDI EZE",
+            "reference": "WEB-202"
+          }
+        ]
+      },
+      "review": {
+        "app": "AuditTrak review (simulated)",
+        "summary": "Invoice includes extra hosting beyond the original agreement; reviewer should check the later approval."
+      }
+    },
+    "reconciliationRequest": {
+      "eventId": "evt_case_2",
+      "agreement": {
+        "id": "agr_job_2",
+        "kind": "agreement",
+        "source": "demo",
+        "counterparty": "Chidi Eze",
+        "service": "Website build",
+        "amount": {
+          "amountMinor": 30000000,
+          "currency": "NGN"
+        },
+        "effectiveDate": "2026-09-08",
+        "reference": "WEB-202"
+      },
+      "invoice": {
+        "id": "inv_job_2",
+        "kind": "invoice",
+        "source": "demo",
+        "invoiceNumber": "INV-202",
+        "counterparty": "Chidi Eze",
+        "service": "Website build",
+        "amount": {
+          "amountMinor": 35000000,
+          "currency": "NGN"
+        },
+        "issuedDate": "2026-09-09",
+        "reference": "WEB-202"
+      },
+      "payment": {
+        "id": "pay_job_2",
+        "kind": "payment",
+        "source": "demo",
+        "transactionId": "txn_case_2",
+        "direction": "credit",
+        "counterparty": "CHIDI EZE",
+        "amount": {
+          "amountMinor": 35000000,
+          "currency": "NGN"
+        },
+        "transactionDate": "2026-09-12",
+        "reference": "WEB-202",
+        "service": "Website build",
+        "description": "Website build payment"
+      },
+      "amountToleranceMinor": 0,
+      "timingWindowDays": 90
+    },
+    "expectedStatus": "conflict",
+    "customer": "Chidi Eze",
+    "story": "Chidi hires a developer to build a website.",
+    "channel": "Freelance marketplace",
+    "channelExplanation": "Use the marketplace messages, contract/milestone, and platform payment records. Do not move marketplace clients off-platform."
+  },
+  {
+    "id": "job-3-part-payment",
+    "title": "Part payment arrived",
+    "service": "Social media package",
+    "humanQuestion": "Is this a missed payment or an agreed instalment?",
+    "prototypeExpectation": "Only half of the invoice appears in the supplied payment record; check the installment plan.",
+    "limitation": "The first version does not yet calculate an outstanding balance from payment schedules.",
+    "appRecords": {
+      "chat": {
+        "app": "Freelancer.com-inspired marketplace (fictional)",
+        "text": "Zainab Bello: Social media package is NGN 180,000. Freelancer: We can split it into two milestones. Client: Please do. Upwork: First milestone funded; second remains open.",
+        "messages": [
+          {
+            "speaker": "Zainab",
+            "text": "The social media package is NGN 180,000."
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "We can split it into two milestones."
+          },
+          {
+            "speaker": "Zainab",
+            "text": "Please do."
+          },
+          {
+            "speaker": "Platform",
+            "text": "First milestone paid; second milestone is still open."
+          }
+        ]
+      },
+      "agreement": {
+        "app": "Google Drive (simulated, optional)",
+        "file": "Social_media_package_Agreement.pdf",
+        "service": "Social media package",
+        "feeMinor": 18000000,
+        "currency": "NGN",
+        "terms": "Two instalments of NGN 150,000",
+        "client": "Zainab Bello",
+        "customer": "Zainab Bello",
+        "date": "2026-09-15"
+      },
+      "invoice": {
+        "app": "Upwork contract/milestone invoice (simulated)",
+        "invoiceNumber": "INV-303",
+        "service": "Social media package",
+        "totalMinor": 18000000,
+        "currency": "NGN",
+        "customer": "Zainab Bello",
+        "issuedDate": "2026-09-16"
+      },
+      "bank": {
+        "app": "Upwork payment record (simulated)",
+        "lines": [
+          {
+            "date": "2026-09-19",
+            "direction": "credit",
+            "amountMinor": 9000000,
+            "currency": "NGN",
+            "name": "ZAINAB BELLO",
+            "reference": "SOC-303"
+          }
+        ]
+      },
+      "review": {
+        "app": "AuditTrak review (simulated)",
+        "summary": "Only half of the invoice appears in the supplied payment record; check the installment plan."
+      }
+    },
+    "reconciliationRequest": {
+      "eventId": "evt_case_3",
+      "agreement": {
+        "id": "agr_job_3",
+        "kind": "agreement",
+        "source": "demo",
+        "counterparty": "Zainab Bello",
+        "service": "Social media package",
+        "amount": {
+          "amountMinor": 18000000,
+          "currency": "NGN"
+        },
+        "effectiveDate": "2026-09-15",
+        "reference": "SOC-303"
+      },
+      "invoice": {
+        "id": "inv_job_3",
+        "kind": "invoice",
+        "source": "demo",
+        "invoiceNumber": "INV-303",
+        "counterparty": "Zainab Bello",
+        "service": "Social media package",
+        "amount": {
+          "amountMinor": 18000000,
+          "currency": "NGN"
+        },
+        "issuedDate": "2026-09-16",
+        "reference": "SOC-303"
+      },
+      "payment": {
+        "id": "pay_job_3",
+        "kind": "payment",
+        "source": "demo",
+        "transactionId": "txn_case_3",
+        "direction": "credit",
+        "counterparty": "ZAINAB BELLO",
+        "amount": {
+          "amountMinor": 9000000,
+          "currency": "NGN"
+        },
+        "transactionDate": "2026-09-19",
+        "reference": "SOC-303",
+        "service": "Social media package",
+        "description": "Social media package payment"
+      },
+      "amountToleranceMinor": 0,
+      "timingWindowDays": 90
+    },
+    "expectedStatus": "conflict",
+    "customer": "Zainab Bello",
+    "story": "Zainab hires a freelancer to manage social media.",
+    "channel": "Freelance marketplace",
+    "channelExplanation": "Use the marketplace messages, contract/milestone, and platform payment records. Do not move marketplace clients off-platform."
+  },
+  {
+    "id": "job-4-third-party-payer",
+    "title": "The payer name differs",
+    "service": "Bookkeeping setup",
+    "humanQuestion": "Did a company pay on the customer’s behalf?",
+    "prototypeExpectation": "The payer name differs from Kemi’s name, so the system asks a person to confirm who sent the money.",
+    "limitation": "A matching amount or reference cannot prove who owns the sending account.",
+    "appRecords": {
+      "chat": {
+        "app": "Gmail-inspired email (fictional)",
+        "text": "Kemi Adeyemi: I agree to NGN 220,000 for bookkeeping setup. Freelancer: I’ll send the invoice. Client: My company will pay using the invoice reference. Freelancer: I’ll confirm when the payment arrives.",
+        "messages": [
+          {
+            "speaker": "Kemi",
+            "text": "I agree to NGN 220,000 for bookkeeping setup."
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "I’ll send an invoice with a payment reference."
+          },
+          {
+            "speaker": "Kemi",
+            "text": "My company will pay using that reference."
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "I’ll confirm after I see the deposit."
+          }
+        ]
+      },
+      "agreement": {
+        "app": "Google Drive (simulated)",
+        "file": "Bookkeeping_setup_Agreement.pdf",
+        "customer": "Kemi Adeyemi",
+        "feeMinor": 22000000,
+        "currency": "NGN",
+        "client": "Kemi Adeyemi",
+        "service": "Bookkeeping setup",
+        "date": "2026-09-22"
+      },
+      "invoice": {
+        "app": "Zoho Books (simulated)",
+        "invoiceNumber": "INV-404",
+        "customer": "Kemi Adeyemi",
+        "totalMinor": 22000000,
+        "currency": "NGN",
+        "service": "Bookkeeping setup",
+        "issuedDate": "2026-09-23"
+      },
+      "bank": {
+        "app": "Bank transfer or Stripe (simulated)",
+        "lines": [
+          {
+            "date": "2026-09-26",
+            "direction": "credit",
+            "amountMinor": 22000000,
+            "currency": "NGN",
+            "name": "THIRD PARTY HOLDINGS",
+            "reference": "BOOK-404"
+          }
+        ]
+      },
+      "review": {
+        "app": "AuditTrak review (simulated)",
+        "summary": "The payer name differs from Kemi’s name, so the system asks a person to confirm who sent the money."
+      }
+    },
+    "reconciliationRequest": {
+      "eventId": "evt_case_4",
+      "agreement": {
+        "id": "agr_job_4",
+        "kind": "agreement",
+        "source": "demo",
+        "counterparty": "Kemi Adeyemi",
+        "service": "Bookkeeping setup",
+        "amount": {
+          "amountMinor": 22000000,
+          "currency": "NGN"
+        },
+        "effectiveDate": "2026-09-22",
+        "reference": "BOOK-404"
+      },
+      "invoice": {
+        "id": "inv_job_4",
+        "kind": "invoice",
+        "source": "demo",
+        "invoiceNumber": "INV-404",
+        "counterparty": "Kemi Adeyemi",
+        "amount": {
+          "amountMinor": 22000000,
+          "currency": "NGN"
+        },
+        "issuedDate": "2026-09-23",
+        "reference": "BOOK-404",
+        "service": "Bookkeeping setup"
+      },
+      "payment": {
+        "id": "pay_job_4",
+        "kind": "payment",
+        "source": "demo",
+        "transactionId": "txn_case_4",
+        "direction": "credit",
+        "counterparty": "Third Party Holdings",
+        "amount": {
+          "amountMinor": 22000000,
+          "currency": "NGN"
+        },
+        "transactionDate": "2026-09-26",
+        "reference": "BOOK-404",
+        "service": "Bookkeeping setup",
+        "description": "Bookkeeping setup payment"
+      },
+      "amountToleranceMinor": 0,
+      "timingWindowDays": 90
+    },
+    "expectedStatus": "conflict",
+    "customer": "Kemi Adeyemi",
+    "story": "Kemi hires a bookkeeper for setup work.",
+    "channel": "Direct client",
+    "channelExplanation": "The client was found independently, so the agreement may be in email/chat, the contract file in Drive, the invoice in an invoicing app, and the payment in the bank or a payment service."
+  },
+  {
+    "id": "job-5-reversal",
+    "title": "Payment was reversed",
+    "service": "Brand photography",
+    "humanQuestion": "Did the payment stay in the account?",
+    "prototypeExpectation": "The incoming payment was reversed; do not count it as settled.",
+    "limitation": "The first version does not yet pair a reversal with its original transaction automatically.",
+    "appRecords": {
+      "chat": {
+        "app": "Telegram-inspired chat (fictional)",
+        "text": "Tobi Nwosu: I agree to NGN 200,000 for brand photography. Freelancer: I’ve sent the invoice. Client: I sent the transfer. Freelancer: It appeared, but the bank reversed it the next day.",
+        "messages": [
+          {
+            "speaker": "Tobi",
+            "text": "I sent NGN 200,000 for the photography job."
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "The payment appeared in my account."
+          },
+          {
+            "speaker": "Tobi",
+            "text": "My bank says it was reversed."
+          },
+          {
+            "speaker": "Freelancer",
+            "text": "I’ll check the bank record before marking the invoice paid."
+          }
+        ]
+      },
+      "agreement": {
+        "app": "Google Drive (simulated)",
+        "file": "Brand_photography_Agreement.pdf",
+        "feeMinor": 20000000,
+        "currency": "NGN",
+        "client": "Tobi Nwosu",
+        "customer": "Tobi Nwosu",
+        "service": "Brand photography",
+        "date": "2026-09-29"
+      },
+      "invoice": {
+        "app": "Zoho Books (simulated)",
+        "invoiceNumber": "INV-505",
+        "service": "Brand photography",
+        "totalMinor": 20000000,
+        "currency": "NGN",
+        "customer": "Tobi Nwosu",
+        "issuedDate": "2026-09-30"
+      },
+      "bank": {
+        "app": "Bank transfer or Stripe (simulated)",
+        "lines": [
+          {
+            "date": "2026-10-03",
+            "direction": "credit",
+            "amountMinor": 20000000,
+            "currency": "NGN",
+            "name": "TOBI NWOSU",
+            "reference": "INV-505"
+          },
+          {
+            "date": "2026-10-04",
+            "direction": "debit",
+            "amountMinor": 20000000,
+            "currency": "NGN",
+            "name": "REVERSAL INV-505",
+            "reference": "INV-505"
+          }
+        ]
+      },
+      "review": {
+        "app": "AuditTrak review (simulated)",
+        "summary": "The incoming payment was reversed; do not count it as settled."
+      }
+    },
+    "reconciliationRequest": {
+      "eventId": "evt_case_5",
+      "agreement": {
+        "id": "agr_job_5",
+        "kind": "agreement",
+        "source": "demo",
+        "counterparty": "Tobi Nwosu",
+        "service": "Brand photography",
+        "amount": {
+          "amountMinor": 20000000,
+          "currency": "NGN"
+        },
+        "effectiveDate": "2026-09-29",
+        "reference": "PHOTO-505"
+      },
+      "invoice": {
+        "id": "inv_job_5",
+        "kind": "invoice",
+        "source": "demo",
+        "invoiceNumber": "INV-505",
+        "counterparty": "Tobi Nwosu",
+        "amount": {
+          "amountMinor": 20000000,
+          "currency": "NGN"
+        },
+        "issuedDate": "2026-09-30",
+        "reference": "PHOTO-505",
+        "service": "Brand photography"
+      },
+      "payment": {
+        "id": "pay_job_5",
+        "kind": "payment",
+        "source": "demo",
+        "transactionId": "txn_case_5",
+        "direction": "debit",
+        "counterparty": "TOBI NWOSU",
+        "amount": {
+          "amountMinor": 20000000,
+          "currency": "NGN"
+        },
+        "transactionDate": "2026-10-03",
+        "reference": "PHOTO-505",
+        "service": "Brand photography",
+        "description": "Brand photography payment"
+      },
+      "amountToleranceMinor": 0,
+      "timingWindowDays": 90
+    },
+    "expectedStatus": "conflict",
+    "customer": "Tobi Nwosu",
+    "story": "Tobi hires a photographer for brand photos.",
+    "channel": "Direct client",
+    "channelExplanation": "The client was found independently, so the agreement may be in email/chat, the contract file in Drive, the invoice in an invoicing app, and the payment in the bank or a payment service."
+  }
+]

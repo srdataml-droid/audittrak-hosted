@@ -1,0 +1,22 @@
+ 
+      CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,name TEXT NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('business','reviewer')),created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS businesses(id TEXT PRIMARY KEY,user_id TEXT UNIQUE NOT NULL REFERENCES users(id),name TEXT NOT NULL,sector TEXT NOT NULL DEFAULT '',description TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),expires_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS counterparties(id TEXT PRIMARY KEY,business_id TEXT NOT NULL REFERENCES businesses(id),name TEXT NOT NULL,email TEXT NOT NULL DEFAULT '',rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS commercial_events(id TEXT PRIMARY KEY,business_id TEXT NOT NULL REFERENCES businesses(id),counterparty_id TEXT NOT NULL REFERENCES counterparties(id),title TEXT NOT NULL,service TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'NGN',channel TEXT NOT NULL DEFAULT 'direct',revision INTEGER NOT NULL DEFAULT 1,submitted INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS agreements(id TEXT PRIMARY KEY,event_id TEXT UNIQUE NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,data TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS invoices(id TEXT PRIMARY KEY,event_id TEXT UNIQUE NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,data TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS transactions(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,business_id TEXT NOT NULL REFERENCES businesses(id),transaction_id TEXT NOT NULL,data TEXT NOT NULL,UNIQUE(business_id,transaction_id),rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS fulfillments(id TEXT PRIMARY KEY,event_id TEXT UNIQUE NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,data TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS attestations(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,token_hash TEXT UNIQUE NOT NULL,status TEXT NOT NULL DEFAULT 'pending',revision INTEGER NOT NULL,name TEXT,comment TEXT,created_at TEXT NOT NULL,responded_at TEXT,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS evidence_items(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,kind TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,bytes BYTEA NOT NULL,created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS evidence_assessments(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,revision INTEGER NOT NULL,data TEXT NOT NULL,created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS consistency_flags(id TEXT PRIMARY KEY,assessment_id TEXT NOT NULL REFERENCES evidence_assessments(id) ON DELETE CASCADE,code TEXT NOT NULL,status TEXT NOT NULL,message TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS commercial_activity_profiles(business_id TEXT PRIMARY KEY REFERENCES businesses(id),data TEXT NOT NULL,updated_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS institutional_reviews(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,reviewer_id TEXT NOT NULL REFERENCES users(id),revision INTEGER NOT NULL,note TEXT NOT NULL,created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS audit_logs(id TEXT PRIMARY KEY,business_id TEXT NOT NULL REFERENCES businesses(id),actor_id TEXT NOT NULL,event_id TEXT,action TEXT NOT NULL,created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS demo_stories(event_id TEXT PRIMARY KEY REFERENCES commercial_events(id) ON DELETE CASCADE,data TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE TABLE IF NOT EXISTS extraction_proposals(id TEXT PRIMARY KEY,event_id TEXT NOT NULL REFERENCES commercial_events(id) ON DELETE CASCADE,data TEXT NOT NULL,created_at TEXT NOT NULL,rowid BIGSERIAL UNIQUE);
+      CREATE INDEX IF NOT EXISTS events_business ON commercial_events(business_id);
+      CREATE INDEX IF NOT EXISTS audit_business ON audit_logs(business_id);
+    

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+public/app/
+.env
+.env.*
+!.env.example
+coverage/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.log
+.codex-finalizer/
+.work/
+.DS_Store
