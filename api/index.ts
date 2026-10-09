@@ -3,22 +3,48 @@ import type { FastifyInstance } from "fastify";
 
 // Do not start a listener when importing the application into a Function.
 process.env.AUDITTRAK_SERVERLESS = "true";
-const application = import("../src/server.js").then(async ({ buildServer }) => {
+// A failed cold start must not poison every later request in this instance.
+export function recoverableApplication(
+  factory: () => Promise<FastifyInstance>,
+) {
+  let pending: Promise<FastifyInstance> | undefined;
+  return async () => {
+    const current = (pending ??= factory());
+    try {
+      return await current;
+    } catch (error) {
+      if (pending === current) pending = undefined;
+      throw error;
+    }
+  };
+}
+const application = recoverableApplication(async () => {
+  const { buildServer } = await import("../src/server.js");
   if (!process.env.DATABASE_URL)
-    throw new Error("DATABASE_URL is required on Vercel.");
+    throw Object.assign(new Error("DATABASE_URL is required on Vercel."), {
+      code: "DATABASE_NOT_CONFIGURED",
+    });
   const app = buildServer();
-  await app.ready();
-  return app;
+  try {
+    await app.ready();
+    return app;
+  } catch (error) {
+    await app.close().catch(() => {});
+    throw error;
+  }
 });
-void application.catch(() => {});
 
-export function createHandler(application: Promise<FastifyInstance>) {
+export function createHandler(
+  application: Promise<FastifyInstance> | (() => Promise<FastifyInstance>),
+) {
   return async function handler(
     request: IncomingMessage & { body?: unknown },
     response: ServerResponse,
   ) {
     try {
-      const app = await application;
+      const app = await (typeof application === "function"
+        ? application()
+        : application);
       let payload: string | Buffer | undefined;
       if (!["GET", "HEAD"].includes(request.method ?? "GET")) {
         if (request.body !== undefined) {
@@ -65,10 +91,14 @@ export function createHandler(application: Promise<FastifyInstance>) {
       console.error("AuditTrak Function failed", error);
       response.statusCode = 503;
       response.setHeader("content-type", "application/json");
+      response.setHeader("cache-control", "no-store");
       response.end(
         JSON.stringify({
-          error:
-            "AuditTrak is temporarily unavailable. Check the database configuration.",
+          error: "AuditTrak could not complete this request. Please try again.",
+          code:
+            (error as { code?: string }).code === "DATABASE_NOT_CONFIGURED"
+              ? "DATABASE_NOT_CONFIGURED"
+              : "APPLICATION_REQUEST_FAILED",
         }),
       );
     }

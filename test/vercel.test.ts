@@ -4,7 +4,7 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { buildServer } from "../src/server.js";
 import { MvpDatabase } from "../src/mvp/db.js";
-import { createHandler } from "../api/index.js";
+import { createHandler, recoverableApplication } from "../api/index.js";
 
 it("serves UI, API, cookies and streamed JSON through the Vercel handler", async () => {
   const app = buildServer({ database: new MvpDatabase(":memory:") });
@@ -70,6 +70,37 @@ it("serves UI, API, cookies and streamed JSON through the Vercel handler", async
       body: JSON.stringify({ status: "confirmed" }),
     });
     expect(confirmed.status).toBe(200);
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+    await app.close();
+  }
+});
+
+it("recovers a rejected application start without replaying a request", async () => {
+  const app = buildServer({ database: new MvpDatabase(":memory:") });
+  await app.ready();
+  let attempts = 0;
+  const handler = createHandler(
+    recoverableApplication(async () => {
+      if (++attempts === 1)
+        throw new Error("Transient application startup failure");
+      return app;
+    }),
+  );
+  const server = createServer((req, res) => void handler(req, res));
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    const failed = await fetch(url + "/");
+    expect(failed.status).toBe(503);
+    expect(failed.headers.get("cache-control")).toBe("no-store");
+    expect((await failed.json()).error).not.toContain("database configuration");
+    expect((await fetch(url + "/health")).status).toBe(200);
+    expect((await fetch(url + "/health")).status).toBe(200);
+    expect(attempts).toBe(2);
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
