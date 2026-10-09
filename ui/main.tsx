@@ -418,249 +418,305 @@ function App() {
               <div>
                 {user.role === "business" ? (
                   <>
-                    <Form
-                      key={selected.id + "agreement"}
+                    <EvidenceEntry
+                      key={selected.id + "agreement-entry"}
                       title="Agreement"
-                      submit={(f) =>
-                        save("/agreement", "PUT", {
-                          id: selected.agreement?.id ?? uid(),
-                          kind: "agreement",
-                          source: "user",
-                          counterparty: f.counterparty,
-                          service: f.service,
-                          amount: {
-                            amountMinor: Math.round(Number(f.amount) * 100),
-                            currency: selected.currency,
-                          },
-                          effectiveDate: f.date,
-                          reference: f.reference,
-                        })
-                      }
+                      kind="agreement"
+                      event={selected}
+                      onUpload={async (data) => save("/evidence", "POST", data)}
                     >
-                      <Field
-                        label="Client named in agreement"
-                        name="counterparty"
-                        defaultValue={
-                          selected.agreement?.counterparty ??
-                          selected.counterparty
-                        }
-                        required
-                      />
-                      <Field
-                        label="Work agreed"
-                        name="service"
-                        defaultValue={
-                          selected.agreement?.service ?? selected.service
-                        }
-                        required
-                      />
-                      <Field
-                        label={"Agreed amount (" + selected.currency + ")"}
-                        name="amount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={
-                          selected.agreement
-                            ? selected.agreement.amount.amountMinor / 100
-                            : ""
-                        }
-                        required
-                      />
-                      <Field
-                        label="Agreement date"
-                        name="date"
-                        type="date"
-                        defaultValue={
-                          selected.agreement?.effectiveDate ?? date()
-                        }
-                        required
-                      />
-                      <Field
-                        label="Reference (optional)"
-                        name="reference"
-                        defaultValue={selected.agreement?.reference}
-                      />
-                    </Form>
-                    <Form
-                      key={selected.id + "invoice"}
-                      title="Invoice"
-                      submit={(f) =>
-                        save("/invoice", "PUT", {
-                          id: selected.invoice?.id ?? uid(),
-                          kind: "invoice",
-                          source: "user",
-                          invoiceNumber: f.number,
-                          counterparty: f.counterparty,
-                          service: selected.service,
-                          amount: {
-                            amountMinor: Math.round(Number(f.amount) * 100),
-                            currency: selected.currency,
-                          },
-                          issuedDate: f.date,
-                        })
-                      }
-                    >
-                      <Field
-                        label="Invoice number"
-                        name="number"
-                        defaultValue={selected.invoice?.invoiceNumber}
-                        required
-                      />
-                      <Field
-                        label="Client billed"
-                        name="counterparty"
-                        defaultValue={
-                          selected.invoice?.counterparty ??
-                          selected.counterparty
-                        }
-                        required
-                      />
-                      <Field
-                        label={"Billed amount (" + selected.currency + ")"}
-                        name="amount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={
-                          selected.invoice
-                            ? selected.invoice.amount.amountMinor / 100
-                            : ""
-                        }
-                        required
-                      />
-                      <Field
-                        label="Invoice date"
-                        name="date"
-                        type="date"
-                        defaultValue={selected.invoice?.issuedDate ?? date()}
-                        required
-                      />
-                    </Form>
-                    <Form
-                      title="Payment record"
-                      submit={(f) =>
-                        save("/transactions", "POST", {
-                          id: uid(),
-                          kind: "payment",
-                          source: "user",
-                          transactionId: f.transactionId,
-                          direction: f.direction,
-                          counterparty: f.payer,
-                          amount: {
-                            amountMinor: Math.round(Number(f.amount) * 100),
-                            currency: selected.currency,
-                          },
-                          transactionDate: f.date,
-                          reference: f.reference,
-                        })
-                      }
-                    >
-                      <Field
-                        label="Transaction ID (unique)"
-                        name="transactionId"
-                        required
-                      />
-                      <Field
-                        label="Payer / other party"
-                        name="payer"
-                        defaultValue={selected.counterparty}
-                        required
-                      />
-                      <Field
-                        label={"Amount (" + selected.currency + ")"}
-                        name="amount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        required
-                      />
-                      <Field
-                        label="Payment date"
-                        name="date"
-                        type="date"
-                        defaultValue={date()}
-                        required
-                      />
-                      <label>
-                        Direction
-                        <select name="direction">
-                          <option value="credit">Money received</option>
-                          <option value="debit">
-                            Money returned / debited
-                          </option>
-                        </select>
-                      </label>
-                      <Field
-                        label="Invoice or payment reference"
-                        name="reference"
-                      />
-                    </Form>
-                    <details className="card">
-                      <summary>Import selected Mono transactions</summary>
-                      <p>
-                        Optional sandbox setup: the operator must bind your
-                        consented account first. Nothing is connected by
-                        default.
-                      </p>
                       <Form
-                        title="Bank import"
+                        key={selected.id + "agreement"}
+                        title="Agreement"
                         submit={(f) =>
-                          save("/mono-import", "POST", {
-                            transactionIds: f.ids
-                              .split(",")
-                              .map((x) => x.trim())
-                              .filter(Boolean),
+                          save("/agreement", "PUT", {
+                            id: selected.agreement?.id ?? uid(),
+                            kind: "agreement",
+                            source: "user",
+                            counterparty: f.counterparty,
+                            service: f.service,
+                            amount: {
+                              amountMinor: Math.round(Number(f.amount) * 100),
+                              currency: selected.currency,
+                            },
+                            effectiveDate: f.date,
+                            reference: f.reference,
                           })
                         }
                       >
                         <Field
-                          label="Transaction IDs (comma separated)"
-                          name="ids"
+                          label="Client named in agreement"
+                          name="counterparty"
+                          defaultValue={
+                            selected.agreement?.counterparty ??
+                            selected.counterparty
+                          }
+                          required
+                        />
+                        <Field
+                          label="Work agreed"
+                          name="service"
+                          defaultValue={
+                            selected.agreement?.service ?? selected.service
+                          }
+                          required
+                        />
+                        <Field
+                          label={"Agreed amount (" + selected.currency + ")"}
+                          name="amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          defaultValue={
+                            selected.agreement
+                              ? selected.agreement.amount.amountMinor / 100
+                              : ""
+                          }
+                          required
+                        />
+                        <Field
+                          label="Agreement date"
+                          name="date"
+                          type="date"
+                          defaultValue={
+                            selected.agreement?.effectiveDate ?? date()
+                          }
+                          required
+                        />
+                        <Field
+                          label="Reference (optional)"
+                          name="reference"
+                          defaultValue={selected.agreement?.reference}
+                        />
+                      </Form>
+                    </EvidenceEntry>
+
+                    <EvidenceEntry
+                      key={selected.id + "invoice-entry"}
+                      title="Invoice"
+                      kind="invoice"
+                      event={selected}
+                      onUpload={async (data) => save("/evidence", "POST", data)}
+                    >
+                      <Form
+                        key={selected.id + "invoice"}
+                        title="Invoice"
+                        submit={(f) =>
+                          save("/invoice", "PUT", {
+                            id: selected.invoice?.id ?? uid(),
+                            kind: "invoice",
+                            source: "user",
+                            invoiceNumber: f.number,
+                            counterparty: f.counterparty,
+                            service: selected.service,
+                            amount: {
+                              amountMinor: Math.round(Number(f.amount) * 100),
+                              currency: selected.currency,
+                            },
+                            issuedDate: f.date,
+                          })
+                        }
+                      >
+                        <Field
+                          label="Invoice number"
+                          name="number"
+                          defaultValue={selected.invoice?.invoiceNumber}
+                          required
+                        />
+                        <Field
+                          label="Client billed"
+                          name="counterparty"
+                          defaultValue={
+                            selected.invoice?.counterparty ??
+                            selected.counterparty
+                          }
+                          required
+                        />
+                        <Field
+                          label={"Billed amount (" + selected.currency + ")"}
+                          name="amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          defaultValue={
+                            selected.invoice
+                              ? selected.invoice.amount.amountMinor / 100
+                              : ""
+                          }
+                          required
+                        />
+                        <Field
+                          label="Invoice date"
+                          name="date"
+                          type="date"
+                          defaultValue={selected.invoice?.issuedDate ?? date()}
                           required
                         />
                       </Form>
-                    </details>
-                    <Form
-                      key={selected.id + "delivery"}
-                      title="Delivery"
-                      submit={(f) =>
-                        save("/fulfillment", "PUT", {
-                          status: f.status,
-                          description: f.description,
-                          ...(f.status === "completed"
-                            ? { completedDate: f.date }
-                            : {}),
-                        })
+                    </EvidenceEntry>
+
+                    <EvidenceEntry
+                      key={selected.id + "payment-entry"}
+                      title="Payment"
+                      kind="payment"
+                      event={selected}
+                      onUpload={async (data) => save("/evidence", "POST", data)}
+                      records={
+                        selected.transactions.length > 0 && (
+                          <div className="saved-payments">
+                            <h4>Saved payment details</h4>
+                            {selected.transactions.map((x: any) => (
+                              <article className="record" key={x.id}>
+                                <b>
+                                  {x.direction === "debit" ? "−" : "+"}
+                                  {money(
+                                    x.amount.amountMinor,
+                                    x.amount.currency,
+                                  )}
+                                </b>
+                                <p>
+                                  {x.counterparty} · {x.transactionDate}
+                                </p>
+                                <small>
+                                  {x.transactionId} ·{" "}
+                                  {x.reference || "No reference"} · Source:{" "}
+                                  {x.source}
+                                </small>
+                                {user.role === "business" && (
+                                  <Button
+                                    className="quiet"
+                                    onClick={() =>
+                                      act(
+                                        () =>
+                                          save(
+                                            "/transactions/" +
+                                              encodeURIComponent(
+                                                x.transactionId,
+                                              ),
+                                            "DELETE",
+                                          ),
+                                        "Payment unlinked",
+                                      )
+                                    }
+                                  >
+                                    Unlink
+                                  </Button>
+                                )}
+                              </article>
+                            ))}
+                          </div>
+                        )
                       }
                     >
-                      <label>
-                        Work status
-                        <select
-                          name="status"
-                          defaultValue={
-                            selected.fulfillment?.status ?? "in_progress"
-                          }
-                        >
-                          <option value="in_progress">In progress</option>
-                          <option value="completed">Completed</option>
-                        </select>
-                      </label>
-                      <Field
-                        label="What was delivered?"
-                        name="description"
-                        defaultValue={selected.fulfillment?.description}
-                        required
-                      />
-                      <Field
-                        label="Completion date"
-                        name="date"
-                        type="date"
-                        defaultValue={
-                          selected.fulfillment?.completedDate ?? date()
+                      <Form
+                        title="Payment record"
+                        submit={(f) =>
+                          save("/transactions", "POST", {
+                            id: uid(),
+                            kind: "payment",
+                            source: "user",
+                            transactionId: f.transactionId,
+                            direction: f.direction,
+                            counterparty: f.payer,
+                            amount: {
+                              amountMinor: Math.round(Number(f.amount) * 100),
+                              currency: selected.currency,
+                            },
+                            transactionDate: f.date,
+                            reference: f.reference,
+                          })
                         }
-                      />
-                    </Form>
+                      >
+                        <Field
+                          label="Transaction ID (unique)"
+                          name="transactionId"
+                          required
+                        />
+                        <Field
+                          label="Payer / other party"
+                          name="payer"
+                          defaultValue={selected.counterparty}
+                          required
+                        />
+                        <Field
+                          label={"Amount (" + selected.currency + ")"}
+                          name="amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          required
+                        />
+                        <Field
+                          label="Payment date"
+                          name="date"
+                          type="date"
+                          defaultValue={date()}
+                          required
+                        />
+                        <label>
+                          Direction
+                          <select name="direction">
+                            <option value="credit">Money received</option>
+                            <option value="debit">
+                              Money returned / debited
+                            </option>
+                          </select>
+                        </label>
+                        <Field
+                          label="Invoice or payment reference"
+                          name="reference"
+                        />
+                      </Form>
+                    </EvidenceEntry>
+
+                    <EvidenceEntry
+                      key={selected.id + "fulfillment-entry"}
+                      title="Delivery"
+                      kind="fulfillment"
+                      event={selected}
+                      onUpload={async (data) => save("/evidence", "POST", data)}
+                    >
+                      <Form
+                        key={selected.id + "delivery"}
+                        title="Delivery"
+                        submit={(f) =>
+                          save("/fulfillment", "PUT", {
+                            status: f.status,
+                            description: f.description,
+                            ...(f.status === "completed"
+                              ? { completedDate: f.date }
+                              : {}),
+                          })
+                        }
+                      >
+                        <label>
+                          Work status
+                          <select
+                            name="status"
+                            defaultValue={
+                              selected.fulfillment?.status ?? "in_progress"
+                            }
+                          >
+                            <option value="in_progress">In progress</option>
+                            <option value="completed">Completed</option>
+                          </select>
+                        </label>
+                        <Field
+                          label="What was delivered?"
+                          name="description"
+                          defaultValue={selected.fulfillment?.description}
+                          required
+                        />
+                        <Field
+                          label="Completion date"
+                          name="date"
+                          type="date"
+                          defaultValue={
+                            selected.fulfillment?.completedDate ?? date()
+                          }
+                        />
+                      </Form>
+                    </EvidenceEntry>
                   </>
                 ) : (
                   <section className="card">
@@ -681,74 +737,56 @@ function App() {
                     ))}
                   </section>
                 )}
-                <section className="card">
-                  <h3>Linked payments</h3>
-                  {!selected.transactions.length && (
-                    <p>No records linked yet.</p>
-                  )}
-                  {selected.transactions.map((x: any) => (
-                    <article className="record" key={x.id}>
-                      <b>
-                        {x.direction === "debit" ? "−" : "+"}
-                        {money(x.amount.amountMinor, x.amount.currency)}
-                      </b>
-                      <p>
-                        {x.counterparty} · {x.transactionDate}
-                      </p>
-                      <small>
-                        {x.transactionId} · {x.reference || "No reference"} ·
-                        Source: {x.source}
-                      </small>
-                      {user.role === "business" && (
-                        <Button
-                          className="quiet"
-                          onClick={() =>
-                            act(
-                              () =>
-                                save(
-                                  "/transactions/" +
-                                    encodeURIComponent(x.transactionId),
-                                  "DELETE",
-                                ),
-                              "Payment unlinked",
-                            )
-                          }
-                        >
-                          Unlink
-                        </Button>
-                      )}
-                    </article>
-                  ))}
-                </section>
               </div>
               <div>
-                <section className="card">
-                  <h3>Evidence files</h3>
-                  <p className="muted">
-                    Attach the original chat export, invoice, receipt, or
-                    delivery proof. A receipt shared in chat is a claim to check
-                    against a bank record.
-                  </p>
-                  {selected.evidence.map((x: any) => (
-                    <p key={x.id}>
-                      <a
-                        href={
-                          "/api/v1/events/" + selected.id + "/evidence/" + x.id
-                        }
-                      >
-                        {x.name}
-                      </a>{" "}
-                      <Badge>{x.kind}</Badge>
-                    </p>
-                  ))}
-                  {user.role === "business" && (
-                    <Upload
-                      onUpload={async (data) => save("/evidence", "POST", data)}
-                    />
-                  )}
-                </section>
+                {user.role === "reviewer" && (
+                  <section className="card">
+                    <h3>Supporting documents</h3>
+                    <EvidenceLinks event={selected} />
+                    <div className="saved-payments">
+                      <h4>Saved payment details</h4>
+                      {selected.transactions.map((x: any) => (
+                        <article className="record" key={x.id}>
+                          <b>
+                            {x.direction === "debit" ? "−" : "+"}
+                            {money(x.amount.amountMinor, x.amount.currency)}
+                          </b>
+                          <p>
+                            {x.counterparty} · {x.transactionDate}
+                          </p>
+                          <small>
+                            {x.transactionId} · {x.reference || "No reference"}{" "}
+                            · Source: {x.source}
+                          </small>
+                          {user.role === "business" && (
+                            <Button
+                              className="quiet"
+                              onClick={() =>
+                                act(
+                                  () =>
+                                    save(
+                                      "/transactions/" +
+                                        encodeURIComponent(x.transactionId),
+                                      "DELETE",
+                                    ),
+                                  "Payment unlinked",
+                                )
+                              }
+                            >
+                              Unlink
+                            </Button>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
                 <section className="card">
                   <h3>Client confirmation</h3>
+                  <p>
+                    Share a link with your client. They can review the job
+                    summary, confirm or dispute it, and leave a comment.
+                  </p>
                   {selected.attestations.map((x: any) => (
                     <p key={x.id}>
                       <Badge
@@ -807,20 +845,6 @@ function App() {
                     identity verification. No message is sent automatically.
                   </p>
                 </section>
-                <details className="card">
-                  <summary>Evidence graph — linked records</summary>
-                  <p>
-                    Each record below supports this commercial event. A link
-                    shows association, not verification.
-                  </p>
-                  {selected.evidenceGraph?.nodes
-                    .filter((x: any) => x.type !== "commercial_event")
-                    .map((x: any) => (
-                      <p key={x.id}>
-                        <Badge>{x.type}</Badge> {x.label} → this job
-                      </p>
-                    ))}
-                </details>
                 <section className="card">
                   <h3>Evidence timeline</h3>
                   {[
@@ -848,75 +872,6 @@ function App() {
                       </p>
                     ))}
                 </section>
-                {user.role === "business" && (
-                  <Form
-                    title="AI extraction proposal"
-                    submit={async (f) => {
-                      await api(
-                        "/events/" + selected.id + "/extraction",
-                        "POST",
-                        {
-                          documentId: f.documentId,
-                          documentKind: f.kind,
-                          documentText: f.text,
-                        },
-                      );
-                      setSelected(await api("/events/" + selected.id));
-                      setNotice(
-                        "Proposal saved for review. Copy reviewed fields into the evidence forms.",
-                      );
-                    }}
-                  >
-                    <p className="muted">
-                      Optional provider setup required. Paste text from an
-                      attached document; proposed fields never change saved
-                      evidence automatically.
-                    </p>
-                    <label>
-                      Attached document
-                      <select name="documentId" required>
-                        <option value="">Choose a file</option>
-                        {selected.evidence
-                          .filter((x: any) =>
-                            ["agreement", "invoice"].includes(x.kind),
-                          )
-                          .map((x: any) => (
-                            <option value={x.id} key={x.id}>
-                              {x.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    <label>
-                      Document type
-                      <select name="kind">
-                        <option>agreement</option>
-                        <option>invoice</option>
-                      </select>
-                    </label>
-                    <label>
-                      Document text
-                      <textarea name="text" minLength={20} required />
-                    </label>
-                  </Form>
-                )}
-                {selected.proposals.map((x: any) => (
-                  <section className="card" key={x.id}>
-                    <h3>Proposed fields — review required</h3>
-                    {Object.entries(x.data.fields).map(
-                      ([k, v]: [string, any]) => (
-                        <p key={k}>
-                          <b>
-                            {k}: {String(v.value)}
-                          </b>
-                          <small className="block">
-                            Source excerpt: {v.supportingText}
-                          </small>
-                        </p>
-                      ),
-                    )}
-                  </section>
-                ))}
                 <section className="card">
                   <h3>Reviewer notes</h3>
                   {selected.reviews.map((x: any) => (
@@ -1014,8 +969,8 @@ function App() {
               <h2>{user.role === "reviewer" ? "Review queue" : "Your jobs"}</h2>
               {!events.length && (
                 <p className="muted">
-                No jobs yet.{" "}
-                {user.role === "business"
+                  No jobs yet.{" "}
+                  {user.role === "business"
                     ? "Create a job to organize its agreement, invoice, payment, and delivery records."
                     : "Ask the business owner to share an assessed job."}
                 </p>
@@ -1189,30 +1144,115 @@ function EventForm({
     </Form>
   );
 }
-function Upload({ onUpload }: { onUpload: (x: any) => Promise<any> }) {
-  const [kind, setKind] = useState("agreement"),
-    [error, setError] = useState(""),
+function EvidenceLinks({ event, kind }: { event: any; kind?: string }) {
+  const files = event.evidence.filter(
+    (item: any) => !kind || item.kind === kind,
+  );
+  return (
+    <div className="evidence-links">
+      {files.map((item: any) => (
+        <p key={item.id}>
+          <a href={"/api/v1/events/" + event.id + "/evidence/" + item.id}>
+            {item.name}
+          </a>
+          {!kind && <Badge>{item.kind}</Badge>}
+        </p>
+      ))}
+    </div>
+  );
+}
+function EvidenceEntry({
+  title,
+  kind,
+  event,
+  onUpload,
+  children,
+  records,
+}: {
+  title: string;
+  kind: string;
+  event: any;
+  onUpload: (data: any) => Promise<any>;
+  children: React.ReactNode;
+  records?: React.ReactNode;
+}) {
+  const [mode, setMode] = useState(
+    kind === "fulfillment" ? "manual" : "upload",
+  );
+  return (
+    <section className="card evidence-entry">
+      <h3>{title}</h3>
+      {kind === "invoice" && (
+        <p className="muted">
+          Have an invoice? Add it here. If you don't issue invoices, skip this
+          and upload your receipt under Payment.
+        </p>
+      )}
+      {kind === "payment" && (
+        <p className="muted">
+          Upload a payment receipt, with or without an invoice, or enter the
+          payment details.
+        </p>
+      )}
+      <div
+        className="entry-options"
+        role="group"
+        aria-label={title + " entry method"}
+      >
+        <Button
+          type="button"
+          className={mode === "upload" ? "" : "secondary"}
+          aria-pressed={mode === "upload"}
+          onClick={() => setMode("upload")}
+        >
+          Upload {kind === "payment" ? "receipt" : "document"}
+        </Button>
+        <Button
+          type="button"
+          className={mode === "manual" ? "" : "secondary"}
+          aria-pressed={mode === "manual"}
+          onClick={() => setMode("manual")}
+        >
+          Fill in details
+        </Button>
+      </div>
+      <div hidden={mode !== "upload"}>
+        <Upload kind={kind} onUpload={onUpload} />
+        <p className="muted">
+          Your original file is saved with this job. Document contents are not
+          read automatically yet; comparisons use any details entered in the
+          form.
+        </p>
+      </div>
+      <div hidden={mode !== "manual"}>{children}</div>
+      <EvidenceLinks event={event} kind={kind} />
+      {records}
+    </section>
+  );
+}
+
+function Upload({
+  onUpload,
+  kind,
+}: {
+  onUpload: (x: any) => Promise<any>;
+  kind: string;
+}) {
+  const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   return (
     <>
       <label>
-        Evidence stage
-        <select value={kind} onChange={(e) => setKind(e.target.value)}>
-          {["agreement", "invoice", "payment", "fulfillment", "other"].map(
-            (x) => (
-              <option key={x}>{x}</option>
-            ),
-          )}
-        </select>
-      </label>
-      <label>
-        {busy ? "Uploading…" : "Attach a file (PDF, PNG, JPEG, text; max 3 MB)"}
+        {busy
+          ? "Uploading…"
+          : "Attach a file (PDF, Word, PNG, JPEG, text; max 3 MB)"}
         <input
           type="file"
-          accept=".pdf,.png,.jpg,.jpeg,.txt"
+          accept=".pdf,.docx,.png,.jpg,.jpeg,.txt"
           disabled={busy}
           onChange={async (e) => {
-            const file = e.target.files?.[0];
+            const input = e.currentTarget;
+            const file = input.files?.[0];
             if (!file) return;
             setError("");
             if (file.size > 3 * 1024 * 1024) {
@@ -1234,7 +1274,7 @@ function Upload({ onUpload }: { onUpload: (x: any) => Promise<any> }) {
                 mime: file.type || "text/plain",
                 base64: data,
               });
-              e.target.value = "";
+              input.value = "";
             } catch (err) {
               setError((err as Error).message);
             } finally {
@@ -1269,40 +1309,119 @@ function PublicExperience({
   if (screen === "auth")
     return (
       <main className="auth-page">
-        <a className="auth-back" href="#" onClick={(e) => { e.preventDefault(); setScreen("home"); }}>
+        <a
+          className="auth-back"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setScreen("home");
+          }}
+        >
           ← Back to AuditTrak
         </a>
         <div className="auth-grid">
           <section className="auth-story">
-            <div className="brand"><span className="brand-mark">◈</span> AUDITTRAK</div>
+            <div className="brand">
+              <span className="brand-mark">◈</span> AUDITTRAK
+            </div>
             <div className="auth-story-copy">
               <span className="eyebrow light">THE STORY BEHIND THE MONEY</span>
               <h1>Good work deserves a clear record.</h1>
-              <p>Keep the agreement, invoice, payment, and delivery details for each job together.</p>
-              <div className="story-note"><span>AGREEMENT</span><b>What we decided</b><i>→</i><span>PAYMENT</span></div>
+              <p>
+                Keep the agreement, invoice, payment, and delivery details for
+                each job together.
+              </p>
+              <div className="story-note">
+                <span>AGREEMENT</span>
+                <b>What we decided</b>
+                <i>→</i>
+                <span>PAYMENT</span>
+              </div>
             </div>
-            <small className="photo-credit">A calmer way to keep business evidence in view.</small>
+            <small className="photo-credit">
+              A calmer way to keep business evidence in view.
+            </small>
           </section>
           <section className="auth-form-wrap">
-            <div className="mobile-brand brand"><span className="brand-mark">◈</span> AUDITTRAK</div>
+            <div className="mobile-brand brand">
+              <span className="brand-mark">◈</span> AUDITTRAK
+            </div>
             <div className="auth-form-head">
               <span className="eyebrow">YOUR WORKSPACE</span>
               <h2>{signup ? "Create your account" : "Welcome back"}</h2>
-              <p>{signup ? "Set up a place to keep each job’s records together." : "Sign in to continue to your workspace."}</p>
+              <p>
+                {signup
+                  ? "Set up a place to keep each job’s records together."
+                  : "Sign in to continue to your workspace."}
+              </p>
             </div>
-            <Form title={signup ? "Create your workspace" : "Sign in"} submit={submit}>
-              {signup && <Field label="Your name" name="name" placeholder="e.g. Amina Bello" required />}
-              {signup && <Field label="Business name" name="businessName" placeholder="e.g. Amina Creative Studio" required />}
-              <Field label="Email address" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
-              <Field label="Password" name="password" type="password" placeholder={signup ? "At least 12 characters" : "Enter your password"} minLength={signup ? 12 : 1} required autoComplete={signup ? "new-password" : "current-password"} />
-              {signup && <Field label="Confirm password" name="confirmPassword" type="password" placeholder="Enter your password again" minLength={12} required autoComplete="new-password" />}
-              {signup && <p className="field-hint">Use at least 12 characters. You can show or hide either password while typing.</p>}
+            <Form
+              title={signup ? "Create your workspace" : "Sign in"}
+              submit={submit}
+            >
+              {signup && (
+                <Field
+                  label="Your name"
+                  name="name"
+                  placeholder="e.g. Amina Bello"
+                  required
+                />
+              )}
+              {signup && (
+                <Field
+                  label="Business name"
+                  name="businessName"
+                  placeholder="e.g. Amina Creative Studio"
+                  required
+                />
+              )}
+              <Field
+                label="Email address"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+              />
+              <Field
+                label="Password"
+                name="password"
+                type="password"
+                placeholder={
+                  signup ? "At least 12 characters" : "Enter your password"
+                }
+                minLength={signup ? 12 : 1}
+                required
+                autoComplete={signup ? "new-password" : "current-password"}
+              />
+              {signup && (
+                <Field
+                  label="Confirm password"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Enter your password again"
+                  minLength={12}
+                  required
+                  autoComplete="new-password"
+                />
+              )}
+              {signup && (
+                <p className="field-hint">
+                  Use at least 12 characters. You can show or hide either
+                  password while typing.
+                </p>
+              )}
             </Form>
             <p className="auth-switch">
               {signup ? "Already have an account?" : "New to AuditTrak?"}{" "}
-              <button type="button" onClick={() => setSignup(!signup)}>{signup ? "Sign in" : "Create an account"}</button>
+              <button type="button" onClick={() => setSignup(!signup)}>
+                {signup ? "Sign in" : "Create an account"}
+              </button>
             </p>
-            <p className="auth-privacy">Your records stay in your workspace. Sharing with a reviewer requires your action.</p>
+            <p className="auth-privacy">
+              Your records stay in your workspace. Sharing with a reviewer
+              requires your action.
+            </p>
           </section>
         </div>
       </main>
@@ -1311,14 +1430,20 @@ function PublicExperience({
   return (
     <div className="public-site">
       <header className="public-nav">
-        <a className="brand" href="#top"><span className="brand-mark">◈</span> AUDITTRAK</a>
+        <a className="brand" href="#top">
+          <span className="brand-mark">◈</span> AUDITTRAK
+        </a>
         <nav aria-label="Main navigation">
           <a href="#how-it-works">How it works</a>
           <a href="#privacy">Privacy</a>
         </nav>
         <div className="nav-actions">
-          <button className="nav-login" onClick={() => begin(false)}>Log in</button>
-          <button className="nav-cta" onClick={() => begin(true)}>Get started <span>↗</span></button>
+          <button className="nav-login" onClick={() => begin(false)}>
+            Log in
+          </button>
+          <button className="nav-cta" onClick={() => begin(true)}>
+            Get started <span>↗</span>
+          </button>
         </div>
       </header>
       <main id="top" className="public-main">
@@ -1326,41 +1451,157 @@ function PublicExperience({
           <div className="hero-copy">
             <span className="eyebrow">A CLEARER VIEW OF EVERY JOB</span>
             <h1>Make business activity easier to understand.</h1>
-            <p>Agreements live in chats. Invoices live somewhere else. Payments land in your bank. AuditTrak brings the records together so you can see what lines up and what needs a closer look.</p>
-            <div className="hero-actions"><button className="nav-cta" onClick={() => begin(true)}>Create your account <span>↗</span></button><a href="#how-it-works">See how it works <span>↓</span></a></div>
-            <div className="hero-caption"><span className="caption-dot" /> Built for real work, with a person always in control.</div>
+            <p>
+              Agreements live in chats. Invoices live somewhere else. Payments
+              land in your bank. AuditTrak brings the records together so you
+              can see what lines up and what needs a closer look.
+            </p>
+            <div className="hero-actions">
+              <button className="nav-cta" onClick={() => begin(true)}>
+                Create your account <span>↗</span>
+              </button>
+              <a href="#how-it-works">
+                See how it works <span>↓</span>
+              </a>
+            </div>
+            <div className="hero-caption">
+              <span className="caption-dot" /> Built for real work, with a
+              person always in control.
+            </div>
           </div>
-          <div className="hero-visual" role="img" aria-label="Illustrative workspace with a sample job record">
+          <div
+            className="hero-visual"
+            role="img"
+            aria-label="Illustrative workspace with a sample job record"
+          >
             <div className="visual-tag">ONE JOB, ONE CLEAR VIEW</div>
             <div className="visual-paper">
-              <div className="paper-top"><span>JOB RECORD</span><span className="paper-status">IN REVIEW</span></div>
-              <strong>Brand identity<br/>for Aster House</strong>
+              <div className="paper-top">
+                <span>JOB RECORD</span>
+                <span className="paper-status">IN REVIEW</span>
+              </div>
+              <strong>
+                Brand identity
+                <br />
+                for Aster House
+              </strong>
               <div className="paper-rule" />
-              <div className="paper-row"><span>Agreement</span><b>Found</b></div>
-              <div className="paper-row"><span>Invoice</span><b>₦180,000</b></div>
-              <div className="paper-row"><span>Payment</span><b>₦180,000</b></div>
+              <div className="paper-row">
+                <span>Agreement</span>
+                <b>Found</b>
+              </div>
+              <div className="paper-row">
+                <span>Invoice</span>
+                <b>₦180,000</b>
+              </div>
+              <div className="paper-row">
+                <span>Payment</span>
+                <b>₦180,000</b>
+              </div>
               <div className="paper-bottom">3 records · 1 job</div>
             </div>
-            <div className="visual-caption">A simple view of the records behind the work.</div>
+            <div className="visual-caption">
+              A simple view of the records behind the work.
+            </div>
           </div>
         </section>
         <section className="proof-strip" aria-label="Evidence types">
-          <span>AGREEMENT</span><i>+</i><span>INVOICE</span><i>+</i><span>PAYMENT</span><i>+</i><span>DELIVERY</span><b>→</b><strong>ONE CLEAR RECORD</strong>
+          <span>AGREEMENT</span>
+          <i>+</i>
+          <span>INVOICE</span>
+          <i>+</i>
+          <span>PAYMENT</span>
+          <i>+</i>
+          <span>DELIVERY</span>
+          <b>→</b>
+          <strong>ONE CLEAR RECORD</strong>
         </section>
         <section id="how-it-works" className="how-section">
-          <div className="section-intro"><span className="eyebrow">FROM TRANSACTION TO CONTEXT</span><h2>Make the pieces easier to follow.</h2><p>AuditTrak helps freelancers and small businesses organize job evidence and review it in one place.</p></div>
+          <div className="section-intro">
+            <span className="eyebrow">FROM TRANSACTION TO CONTEXT</span>
+            <h2>Make the pieces easier to follow.</h2>
+            <p>
+              AuditTrak helps freelancers and small businesses organize job
+              evidence and review it in one place.
+            </p>
+          </div>
           <div className="how-grid">
-            <article><span className="step-no">01</span><div className="step-icon">↗</div><h3>Bring the records together</h3><p>Add the agreement, invoice, payment, and delivery details for one piece of work.</p></article>
-            <article><span className="step-no">02</span><div className="step-icon">⌕</div><h3>See what lines up</h3><p>AuditTrak compares dates, amounts, names, and references using clear rules.</p></article>
-            <article><span className="step-no">03</span><div className="step-icon">✓</div><h3>Review the open questions</h3><p>Differences and missing details are shown for a person to check and resolve.</p></article>
+            <article>
+              <span className="step-no">01</span>
+              <div className="step-icon">↗</div>
+              <h3>Bring the records together</h3>
+              <p>
+                Add the agreement, invoice, payment, and delivery details for
+                one piece of work.
+              </p>
+            </article>
+            <article>
+              <span className="step-no">02</span>
+              <div className="step-icon">⌕</div>
+              <h3>See what lines up</h3>
+              <p>
+                AuditTrak compares dates, amounts, names, and references using
+                clear rules.
+              </p>
+            </article>
+            <article>
+              <span className="step-no">03</span>
+              <div className="step-icon">✓</div>
+              <h3>Review the open questions</h3>
+              <p>
+                Differences and missing details are shown for a person to check
+                and resolve.
+              </p>
+            </article>
           </div>
         </section>
         <section className="context-section">
-          <div><span className="eyebrow light">LESS GUESSWORK</span><h2>Know what the records say—and what they don’t.</h2><p>A matching amount is a useful signal. It is not proof that every part of a job is complete. AuditTrak keeps evidence and questions visible so people can make informed reviews.</p><button className="light-cta" onClick={() => begin(true)}>Start with a job <span>↗</span></button></div>
-          <div className="context-card"><span className="context-card-kicker">ASSESSMENT SUMMARY</span><strong>Payment amount matches invoice</strong><p>Both records show ₦180,000 NGN.</p><div className="context-divider"/><span className="review-pill">CHECK DELIVERY DETAILS</span><small>Payment evidence does not confirm that the agreed work was delivered.</small></div>
+          <div>
+            <span className="eyebrow light">LESS GUESSWORK</span>
+            <h2>Know what the records say—and what they don’t.</h2>
+            <p>
+              A matching amount is a useful signal. It is not proof that every
+              part of a job is complete. AuditTrak keeps evidence and questions
+              visible so people can make informed reviews.
+            </p>
+            <button className="light-cta" onClick={() => begin(true)}>
+              Start with a job <span>↗</span>
+            </button>
+          </div>
+          <div className="context-card">
+            <span className="context-card-kicker">ASSESSMENT SUMMARY</span>
+            <strong>Payment amount matches invoice</strong>
+            <p>Both records show ₦180,000 NGN.</p>
+            <div className="context-divider" />
+            <span className="review-pill">CHECK DELIVERY DETAILS</span>
+            <small>
+              Payment evidence does not confirm that the agreed work was
+              delivered.
+            </small>
+          </div>
         </section>
-        <section id="privacy" className="privacy-section"><span className="privacy-symbol">◈</span><div><span className="eyebrow">YOUR EVIDENCE, YOUR CHOICE</span><h2>Sharing stays in your hands.</h2><p>Keep job records in your workspace. When you choose to share a job with a reviewer, the shared record gives them more context to understand the activity.</p></div><button className="privacy-link" onClick={() => begin(true)}>Create your workspace ↗</button></section>
-        <footer className="public-footer"><a className="brand" href="#top"><span className="brand-mark">◈</span> AUDITTRAK</a><span>The story behind the money.</span><span>People review. AuditTrak organizes the evidence.</span></footer>
+        <section id="privacy" className="privacy-section">
+          <span className="privacy-symbol">◈</span>
+          <div>
+            <span className="eyebrow">YOUR EVIDENCE, YOUR CHOICE</span>
+            <h2>Sharing stays in your hands.</h2>
+            <p>
+              Keep job records in your workspace. When you choose to share a job
+              with a reviewer, the shared record gives them more context to
+              understand the activity.
+            </p>
+          </div>
+          <button className="privacy-link" onClick={() => begin(true)}>
+            Create your workspace ↗
+          </button>
+        </section>
+        <footer className="public-footer">
+          <a className="brand" href="#top">
+            <span className="brand-mark">◈</span> AUDITTRAK
+          </a>
+          <span>The story behind the money.</span>
+          <span>People review. AuditTrak organizes the evidence.</span>
+        </footer>
       </main>
     </div>
   );

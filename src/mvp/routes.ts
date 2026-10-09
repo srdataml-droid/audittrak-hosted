@@ -514,6 +514,7 @@ export function registerMvp(
             name: z.string().min(1).max(200),
             mime: z.enum([
               "application/pdf",
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
               "image/png",
               "image/jpeg",
               "text/plain",

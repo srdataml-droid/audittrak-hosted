@@ -15,10 +15,24 @@ export function assess(event: any) {
         : -tx.amount.amountMinor),
     0,
   );
-  if (!event.agreement) add("agreement", "missing", "Agreement is missing.");
-  if (!event.invoice) add("invoice", "missing", "Invoice is missing.");
-  if (!event.transactions.length)
-    add("payment", "missing", "No payment record has been linked.");
+  const hasFile = (kind: string) =>
+    event.evidence.some((item: any) => item.kind === kind);
+  for (const [kind, record] of [
+    ["agreement", event.agreement],
+    ["invoice", event.invoice],
+    ["payment", event.transactions.length > 0],
+  ] as const) {
+    if (!record)
+      add(
+        kind,
+        hasFile(kind) ? "uncertain" : "missing",
+        hasFile(kind)
+          ? `${kind[0].toUpperCase() + kind.slice(1)} document is uploaded. Its contents have not been read automatically; amounts, names and dates need review.`
+          : kind === "invoice"
+            ? "No invoice supplied. If you do not issue invoices, use your agreement and payment receipt; invoice comparisons are unavailable."
+            : `${kind[0].toUpperCase() + kind.slice(1)} has not been supplied.`,
+      );
+  }
   if (currencyMismatch)
     add(
       "payment_currency",
@@ -174,9 +188,9 @@ export function assess(event: any) {
   );
   const strong = conflicts.length === 0 && warnings.length === 0;
   const coverage = [
-    !!event.agreement,
-    !!event.invoice,
-    event.transactions.length > 0,
+    !!event.agreement || hasFile("agreement"),
+    !!event.invoice || hasFile("invoice"),
+    event.transactions.length > 0 || hasFile("payment"),
     !!fulfillment && fulfillment.status === "completed" && supportingDelivery,
     attestation?.status === "confirmed",
   ].filter(Boolean).length;
@@ -192,12 +206,15 @@ export function assess(event: any) {
     conflicts,
     warnings,
     coverage: { present: coverage, total: 5 },
-    netPaymentMinor: currencyMismatch ? null : net,
+    netPaymentMinor:
+      currencyMismatch || (!event.transactions.length && hasFile("payment"))
+        ? null
+        : net,
     currency: event.currency,
     entityMatching:
       comparison?.signals.filter((x: any) => x.code.includes("counterparty")) ??
       [],
-    summary: `${event.title}: ${coverage} of 5 evidence stages are present. ${currencyMismatch ? "Payments use different currencies." : `Net linked payment is ${(net / 100).toFixed(2)} ${event.currency}.`} ${conflicts.length} difference(s) and ${warnings.length} missing or uncertain item(s) require attention.`,
+    summary: `${event.title}: ${coverage} of 5 evidence stages are present. ${currencyMismatch ? "Payments use different currencies." : !event.transactions.length && hasFile("payment") ? "A payment receipt is uploaded; its amount has not been read." : `Net linked payment is ${(net / 100).toFixed(2)} ${event.currency}.`} ${conflicts.length} difference(s) and ${warnings.length} missing or uncertain item(s) require attention.`,
     confidenceExplanation:
       "This is a deterministic evidence coverage assessment, not a probability, credit score, or verification of document authenticity.",
     decisioning: { creditDecision: null, fraudLabel: null },
