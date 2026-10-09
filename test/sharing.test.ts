@@ -90,6 +90,21 @@ it("shares only selected evidence, captures versions, scopes anonymous documents
       },
       cookie,
     );
+    await call(
+      "POST",
+      `/events/${second.id}/transactions`,
+      {
+        id: "paymentUSD",
+        kind: "payment",
+        source: "user",
+        transactionId: "USD1",
+        direction: "credit",
+        counterparty: "Client",
+        amount: { amountMinor: 2500, currency: "USD" },
+        transactionDate: "2026-10-01",
+      },
+      cookie,
+    );
     const created = await call(
       "POST",
       "/shares",
@@ -106,6 +121,7 @@ it("shares only selected evidence, captures versions, scopes anonymous documents
       second.id,
     ]);
     expect(opened.json().totals.NGN).toBe(150000);
+    expect(opened.json().totals.USD).toBe(2500);
     expect(opened.json().unreadReceipts).toBe(1);
     const file = await call("GET", `/shared/${token}/files/${receipt.id}`);
     expect(file.body).toBe("Receipt original");

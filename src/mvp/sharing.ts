@@ -183,13 +183,9 @@ export function registerSharing(
       const totals: Record<string, number> = {};
       let unreadReceipts = 0;
       for (const event of share.snapshot.events) {
-        const mixed = event.payments.some(
-          (p: any) => p.amount.currency !== event.currency,
-        );
-        if (mixed) continue;
         for (const payment of event.payments)
-          totals[event.currency] =
-            (totals[event.currency] ?? 0) +
+          totals[payment.amount.currency] =
+            (totals[payment.amount.currency] ?? 0) +
             (payment.direction === "debit" ? -1 : 1) *
               payment.amount.amountMinor;
         if (
