@@ -3,29 +3,65 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { id, now } from "./db.js";
 import { postgresSchema, tableColumns } from "./postgres-schema.js";
 
+export function isDatabaseConnectionError(error: unknown) {
+  const value = error as { code?: string; message?: string };
+  return (
+    [
+      "ECONNRESET",
+      "ECONNREFUSED",
+      "ETIMEDOUT",
+      "EAI_AGAIN",
+      "ENOTFOUND",
+      "57P01",
+      "57P02",
+      "57P03",
+    ].includes(value?.code ?? "") ||
+    /connection.*(?:timeout|timed out|terminated|closed)|timeout.*connect/i.test(
+      value?.message ?? "",
+    )
+  );
+}
+
 /** A pooled PostgreSQL backend. Every transaction stays on one connection. */
 export class PostgresDatabase {
   private pool: Pool;
   private context = new AsyncLocalStorage<PoolClient>();
-  private ready: Promise<void>;
+  private ready?: Promise<void>;
   db: { close: () => Promise<void> };
   constructor(connectionString: string, pool?: Pool) {
-    this.pool = pool ?? new Pool({
-      connectionString,
-      max: 3,
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 15000,
-    });
+    this.pool =
+      pool ??
+      new Pool({
+        connectionString,
+        max: 3,
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 30000,
+      });
     this.pool.on("error", (error) =>
       console.error("AuditTrak database pool error", error.message),
     );
     this.db = { close: () => this.pool.end() };
-    this.ready = this.initialize();
-    // The request still receives the rejected promise; avoid an unhandled rejection during cold start.
-    void this.ready.catch(() => {});
+  }
+  private async ensureReady() {
+    // Share initialization between requests, but never cache a failed connection.
+    const pending = (this.ready ??= this.initialize());
+    try {
+      await pending;
+    } catch (error) {
+      if (this.ready === pending) this.ready = undefined;
+      throw error;
+    }
   }
   private async initialize() {
-    const client = await this.pool.connect();
+    let client: PoolClient;
+    try {
+      client = await this.pool.connect();
+    } catch (error) {
+      // An idle compute may take longer to wake. Retry connection acquisition,
+      // before any SQL or application writes have been sent.
+      if (!isDatabaseConnectionError(error)) throw error;
+      client = await this.pool.connect();
+    }
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(1791529)");
@@ -51,7 +87,7 @@ export class PostgresDatabase {
       .replace(/\?/g, () => "$" + ++n);
   }
   private async query(sql: string, params: any[]) {
-    await this.ready;
+    await this.ensureReady();
     return (this.context.getStore() ?? this.pool).query(this.sql(sql), params);
   }
   async one(sql: string, ...params: any[]): Promise<any> {
@@ -64,7 +100,7 @@ export class PostgresDatabase {
     return { changes: (await this.query(sql, params)).rowCount ?? 0 };
   }
   async atomic<T>(fn: () => T | Promise<T>): Promise<T> {
-    await this.ready;
+    await this.ensureReady();
     if (this.context.getStore()) return await fn();
     const client = await this.pool.connect();
     try {

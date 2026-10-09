@@ -1,4 +1,5 @@
 import type { PostgresDatabase } from "./postgres.js";
+import { isDatabaseConnectionError } from "./postgres.js";
 import type { FastifyInstance } from "fastify";
 import { randomBytes } from "node:crypto";
 import { z, ZodError } from "zod";
@@ -141,6 +142,13 @@ export function registerMvp(
             error: "Please check the entered fields.",
             issues: error.issues,
           });
+        if (isDatabaseConnectionError(error)) {
+          request.log.error(error);
+          return reply.header("retry-after", "5").code(503).send({
+            error:
+              "The database connection is temporarily unavailable. Please try again in a moment.",
+          });
+        }
         if (
           String(error.message).includes("UNIQUE constraint") ||
           (error as any).code === "23505"

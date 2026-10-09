@@ -9,7 +9,7 @@ import { PostgresDatabase } from "../src/mvp/postgres.js";
 import { buildServer } from "../src/server.js";
 
 // PGlite runs PostgreSQL itself, so this exercises real SQL and transaction semantics.
-function postgres(path: string) {
+function postgres(path: string, connectionFailures = 0) {
   const engine = new PGlite(path);
   const query = async (sql: string, values?: any[]) => {
     if (sql.includes("pg_advisory_xact_lock")) return { rows: [], rowCount: 1 };
@@ -23,13 +23,53 @@ function postgres(path: string) {
   const pool = {
     query,
     on: () => {},
-    connect: async () => ({ query, release: () => {} }),
+    connect: async () => {
+      if (connectionFailures-- > 0)
+        throw new Error("Connection terminated due to connection timeout");
+      return { query, release: () => {} };
+    },
     end: () => engine.close(),
   } as unknown as Pool;
   return new PostgresDatabase("postgresql://test", pool);
 }
 
 describe("hosted PostgreSQL workspace", () => {
+  it("recovers signup after a database wake timeout without caching the failure", async () => {
+    const db = postgres("memory://", 2);
+    const app = buildServer({ database: db });
+    const account = {
+      name: "Recovery Test",
+      email: "recovery@example.invalid",
+      password: "TwelveCharacters!",
+      businessName: "Recovery Studio",
+    };
+    try {
+      const failed = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/signup",
+        payload: account,
+      });
+      expect(failed.statusCode).toBe(503);
+      expect(failed.json().error).toContain("temporarily unavailable");
+      const recovered = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/signup",
+        payload: account,
+      });
+      expect(recovered.statusCode, recovered.body).toBe(200);
+      const cookie = String(recovered.headers["set-cookie"]).split(";")[0];
+      const me = await app.inject({
+        url: "/api/v1/auth/me",
+        headers: { cookie },
+      });
+      expect(me.json().user.email).toBe(account.email);
+      expect((await db.one("SELECT count(*) AS count FROM users")).count).toBe(
+        1,
+      );
+    } finally {
+      await app.close();
+    }
+  });
   it("persists sessions and evidence across restarts, isolates businesses and rolls back writes", async () => {
     const folder = mkdtempSync(join(tmpdir(), "audittrak-pg-"));
     let db = postgres(join(folder, "db"));
