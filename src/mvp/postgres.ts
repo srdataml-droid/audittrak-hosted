@@ -1,3 +1,4 @@
+import { sharingSchema } from "./sharing-schema.js";
 import { Pool, type PoolClient } from "pg";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { id, now } from "./db.js";
@@ -65,7 +66,7 @@ export class PostgresDatabase {
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(1791529)");
-      await client.query(postgresSchema);
+      await client.query(postgresSchema + sharingSchema);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
@@ -162,7 +163,7 @@ export class PostgresDatabase {
       )
     ).map((x) => JSON.parse(x.data));
     event.attestations = await this.all(
-      "SELECT id,status,revision,name,comment,created_at,responded_at FROM attestations WHERE event_id=? ORDER BY rowid DESC",
+      "SELECT a.id,a.status,a.revision,a.name,a.comment,a.created_at,a.responded_at,d.email,d.phone,d.review_consent,n.status AS notification_status FROM attestations a LEFT JOIN confirmation_details d ON d.attestation_id=a.id LEFT JOIN notification_outbox n ON n.attestation_id=a.id WHERE a.event_id=? ORDER BY a.rowid DESC",
       eventId,
     );
     event.evidence = await this.all(

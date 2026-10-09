@@ -1,3 +1,4 @@
+import type { NotificationSender } from "./mvp/notifications.js";
 import Fastify from "fastify";
 import { PostgresDatabase } from "./mvp/postgres.js";
 import { MvpDatabase } from "./mvp/db.js";
@@ -21,6 +22,7 @@ export function buildServer(
     extractor?: DocumentExtractor;
     mono?: MonoTransactionsAdapter;
     database?: MvpDatabase | PostgresDatabase;
+    notificationSender?: NotificationSender;
   } = {},
 ) {
   const app = Fastify({ logger: true, bodyLimit: 8_000_000 });
@@ -50,20 +52,18 @@ export function buildServer(
     } catch (error) {
       request.log.error(error);
       const code = (error as { code?: unknown }).code;
-      return reply
-        .code(503)
-        .send({
-          status: "unavailable",
-          database: "unavailable",
-          code:
-            typeof code === "string" && /^[A-Z0-9_]+$/.test(code)
-              ? code
-              : /timeout|timed out/i.test(String((error as Error).message))
-                ? "CONNECTION_TIMEOUT"
-                : /terminated|closed/i.test(String((error as Error).message))
-                  ? "CONNECTION_CLOSED"
-                  : "DATABASE_UNAVAILABLE",
-        });
+      return reply.code(503).send({
+        status: "unavailable",
+        database: "unavailable",
+        code:
+          typeof code === "string" && /^[A-Z0-9_]+$/.test(code)
+            ? code
+            : /timeout|timed out/i.test(String((error as Error).message))
+              ? "CONNECTION_TIMEOUT"
+              : /terminated|closed/i.test(String((error as Error).message))
+                ? "CONNECTION_CLOSED"
+                : "DATABASE_UNAVAILABLE",
+      });
     }
   });
 
@@ -372,7 +372,7 @@ document.querySelector('#evidence-form').addEventListener('submit',async event=>
       : new MvpDatabase(
           process.env.NODE_ENV === "test" ? ":memory:" : undefined,
         ));
-  registerMvp(app, database, extractor, mono);
+  registerMvp(app, database, extractor, mono, options.notificationSender);
   app.addHook("onClose", async () => {
     await database.db.close();
   });

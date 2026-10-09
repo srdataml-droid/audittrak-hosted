@@ -1,3 +1,11 @@
+import {
+  ShareControls,
+  PackBuilder,
+  ConfirmationControls,
+  Notifications,
+  SharedPack,
+  ClientConfirmation,
+} from "./evidence-sharing";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
@@ -174,7 +182,9 @@ function App() {
     setNotice("Saved. Run the assessment again after changing evidence.");
     return value;
   };
-  if (token) return <Confirmation token={token} />;
+  if (token) return <ClientConfirmation token={token} api={api} />;
+  if (location.pathname.startsWith("/share/"))
+    return <SharedPack token={location.pathname.split("/")[2]} api={api} />;
   if (!ready)
     return (
       <main className="login">
@@ -224,8 +234,10 @@ function App() {
               {x === "jobs"
                 ? user.role === "reviewer"
                   ? "Review queue"
-                  : "My jobs"
-                : x[0].toUpperCase() + x.slice(1)}
+                  : "Commercial Evidence"
+                : x === "profile"
+                  ? "Commercial Evidence Pack"
+                  : x[0].toUpperCase() + x.slice(1)}
             </Button>
           ))}
         </nav>
@@ -266,9 +278,9 @@ function App() {
                 : view === "jobs"
                   ? user.role === "reviewer"
                     ? "Shared jobs for review"
-                    : "Your work. One clear record."
+                    : "Commercial Evidence"
                   : view === "profile"
-                    ? "Commercial activity profile"
+                    ? "Commercial Evidence Pack"
                     : view === "business"
                       ? "Your business"
                       : "Activity history"}
@@ -392,27 +404,15 @@ function App() {
                 >
                   Check this job
                 </Button>
-                <Button
-                  className="secondary"
-                  disabled={
-                    busy || !selected.assessment || selected.assessment.stale
-                  }
-                  onClick={() =>
-                    act(
-                      () =>
-                        save(
-                          selected.submitted ? "/unshare" : "/submit",
-                          "POST",
-                        ),
-                      selected.submitted
-                        ? "Sharing revoked"
-                        : "Shared with the reviewer workspace",
-                    )
-                  }
-                >
-                  {selected.submitted ? "Revoke sharing" : "Share for review"}
-                </Button>
               </div>
+            )}
+            {user.role === "business" && (
+              <ShareControls
+                key={selected.id + "-sharing"}
+                api={api}
+                eventIds={[selected.id]}
+                title={selected.title}
+              />
             )}
             <div className="columns">
               <div>
@@ -781,70 +781,17 @@ function App() {
                     </div>
                   </section>
                 )}
-                <section className="card">
-                  <h3>Client confirmation</h3>
-                  <p>
-                    Share a link with your client. They can review the job
-                    summary, confirm or dispute it, and leave a comment.
-                  </p>
-                  {selected.attestations.map((x: any) => (
-                    <p key={x.id}>
-                      <Badge
-                        good={
-                          x.status === "confirmed" &&
-                          x.revision === selected.revision
-                        }
-                      >
-                        {x.status}
-                      </Badge>{" "}
-                      {x.name ?? "Awaiting response"} · revision {x.revision}
-                      {x.comment && (
-                        <small className="block">{x.comment}</small>
-                      )}
-                    </p>
-                  ))}
-                  {user.role === "business" && (
-                    <>
-                      <p>
-                        Finish editing evidence first. Changes make old
-                        confirmation links invalid.
-                      </p>
-                      <Button
-                        className="secondary"
-                        onClick={() =>
-                          act(async () => {
-                            const r = await api(
-                              "/events/" + selected.id + "/attestations",
-                              "POST",
-                            );
-                            setLink(location.origin + r.path);
-                            setSelected(await api("/events/" + selected.id));
-                            return r;
-                          }, "Link created. Share it with the intended client yourself.")
-                        }
-                      >
-                        Create confirmation link
-                      </Button>
-                      {link && (
-                        <p>
-                          <a href={link} target="_blank" rel="noreferrer">
-                            Open client confirmation ↗
-                          </a>
-                          <input
-                            aria-label="Confirmation link"
-                            readOnly
-                            value={link}
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </p>
-                      )}
-                    </>
-                  )}
-                  <p className="muted">
-                    Anyone holding this link can respond. It is not independent
-                    identity verification. No message is sent automatically.
-                  </p>
-                </section>
+                {user.role === "business" && (
+                  <ConfirmationControls
+                    key={selected.id + "-confirm"}
+                    api={api}
+                    event={selected}
+                    onRefresh={async () => {
+                      setSelected(await api("/events/" + selected.id));
+                      await refresh();
+                    }}
+                  />
+                )}
                 <section className="card">
                   <h3>Evidence timeline</h3>
                   {[
@@ -930,7 +877,7 @@ function App() {
                 <h2>
                   {user.role === "reviewer"
                     ? "Read the evidence. Record your observations."
-                    : "Start with one job."}
+                    : "Start with one Commercial Evidence record."}
                 </h2>
                 <p>
                   {user.role === "reviewer"
@@ -943,7 +890,9 @@ function App() {
               <div>
                 <b>{events.length}</b>
                 <span>
-                  {user.role === "reviewer" ? "Shared jobs" : "Saved jobs"}
+                  {user.role === "reviewer"
+                    ? "Shared jobs"
+                    : "Commercial Evidence records"}
                 </span>
               </div>
               <div>
@@ -966,12 +915,16 @@ function App() {
               </div>
             </div>
             <section className="card">
-              <h2>{user.role === "reviewer" ? "Review queue" : "Your jobs"}</h2>
+              <h2>
+                {user.role === "reviewer"
+                  ? "Review queue"
+                  : "Your Commercial Evidence"}
+              </h2>
               {!events.length && (
                 <p className="muted">
-                  No jobs yet.{" "}
+                  No Commercial Evidence yet.{" "}
                   {user.role === "business"
-                    ? "Create a job to organize its agreement, invoice, payment, and delivery records."
+                    ? "Create Commercial Evidence to organize an agreement, invoice, payment, and delivery records."
                     : "Ask the business owner to share an assessed job."}
                 </p>
               )}
@@ -1018,34 +971,38 @@ function App() {
             )}
           </>
         ) : view === "profile" ? (
-          <section className="card">
-            <h2>{business?.name}</h2>
-            <p>{profile?.explanation}</p>
-            <div className="stats">
-              <div>
-                <b>{profile?.events}</b>
-                <span>Jobs</span>
+          <>
+            <section className="card">
+              <h2>{business?.name}</h2>
+              <p>{profile?.explanation}</p>
+              <div className="stats">
+                <div>
+                  <b>{profile?.events}</b>
+                  <span>Commercial Evidence records</span>
+                </div>
+                <div>
+                  <b>{profile?.consistent}</b>
+                  <span>Consistent records</span>
+                </div>
+                <div>
+                  <b>{profile?.requiresReview}</b>
+                  <span>Require review</span>
+                </div>
               </div>
-              <div>
-                <b>{profile?.consistent}</b>
-                <span>Consistent records</span>
-              </div>
-              <div>
-                <b>{profile?.requiresReview}</b>
-                <span>Require review</span>
-              </div>
-            </div>
-            <h3>Net linked payments by currency</h3>
-            {Object.entries(profile?.netLinkedPaymentsByCurrency ?? {}).map(
-              ([c, v]) => (
-                <p key={c}>{money(Number(v), c)}</p>
-              ),
-            )}
-            <p className="muted">
-              These are linked record totals, not verified revenue.
-              Mixed-currency jobs are excluded from totals.
-            </p>
-          </section>
+              <h3>Net linked payments by currency</h3>
+              {Object.entries(profile?.netLinkedPaymentsByCurrency ?? {}).map(
+                ([c, v]) => (
+                  <p key={c}>{money(Number(v), c)}</p>
+                ),
+              )}
+              <p className="muted">
+                These are linked record totals, not verified revenue.
+                Mixed-currency jobs are excluded from totals.
+              </p>
+            </section>
+            <PackBuilder api={api} events={events} />
+            <Notifications api={api} />
+          </>
         ) : view === "business" ? (
           <Form
             key={business?.id}
@@ -1102,9 +1059,12 @@ function EventForm({
   submit: (f: any) => Promise<any>;
 }) {
   return (
-    <Form title={event ? "Job details" : "New job"} submit={submit}>
+    <Form
+      title={event ? "Commercial Evidence details" : "New Commercial Evidence"}
+      submit={submit}
+    >
       <Field
-        label="Job title"
+        label="Work title"
         name="title"
         defaultValue={event?.title}
         required
@@ -1607,94 +1567,4 @@ function PublicExperience({
   );
 }
 
-function Confirmation({ token }: { token: string }) {
-  const [value, setValue] = useState<any>(null),
-    [error, setError] = useState(""),
-    [done, setDone] = useState(false);
-  useEffect(() => {
-    api("/attest/" + token)
-      .then(setValue)
-      .catch((e) => setError(e.message));
-  }, [token]);
-  return (
-    <main className="login">
-      <div className="brand">◈ AUDITTRAK</div>
-      <h1>Confirm this job</h1>
-      {error && <p className="error">{error}</p>}
-      {value && (
-        <>
-          <section className="card">
-            <h2>{value.title}</h2>
-            <p>
-              {value.business} · Client: {value.counterparty}
-            </p>
-            <p>{value.service}</p>
-            {value.invoice && (
-              <p>
-                Invoice {value.invoice.invoiceNumber}:{" "}
-                {money(
-                  value.invoice.amount.amountMinor,
-                  value.invoice.amount.currency,
-                )}
-              </p>
-            )}
-            {value.agreement && (
-              <p>
-                Agreed:{" "}
-                {money(
-                  value.agreement.amount.amountMinor,
-                  value.agreement.amount.currency,
-                )}{" "}
-                · {value.agreement.service}
-              </p>
-            )}
-            {value.payments?.map((x: any, i: number) => (
-              <p key={i}>
-                {x.direction === "credit" ? "Received" : "Debited"}:{" "}
-                {money(x.amount.amountMinor, x.amount.currency)} ·{" "}
-                {x.counterparty} · {x.date}
-              </p>
-            ))}
-            <p>
-              Delivery: {value.fulfillment?.description ?? "Not recorded"} (
-              {value.fulfillment?.status ?? "missing"})
-            </p>
-            <p>
-              Revision {value.revision}. Confirm that this accurately describes
-              the work and records you know, or dispute it below.
-            </p>
-          </section>
-          {done || value.status !== "pending" ? (
-            <p className="notice">Response recorded. Thank you.</p>
-          ) : (
-            <Form
-              title="Your response"
-              submit={async (f) => {
-                await api("/attest/" + token, "POST", f);
-                setDone(true);
-              }}
-            >
-              <Field label="Your name" name="name" required />
-              <label>
-                Response
-                <select name="status">
-                  <option value="confirmed">I confirm this job</option>
-                  <option value="disputed">I dispute this record</option>
-                </select>
-              </label>
-              <label>
-                Comment (optional)
-                <textarea name="comment" />
-              </label>
-            </Form>
-          )}
-          <p className="muted">
-            Only respond if this link was intended for you. Link possession is
-            not independent identity verification.
-          </p>
-        </>
-      )}
-    </main>
-  );
-}
 createRoot(document.getElementById("root")!).render(<App />);

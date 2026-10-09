@@ -39,6 +39,37 @@ it("serves UI, API, cookies and streamed JSON through the Vercel handler", async
       headers: { cookie, origin: url },
     });
     expect(seed.status).toBe(200);
+    const events = await (
+      await fetch(url + "/api/v1/events", { headers: { cookie } })
+    ).json();
+    const invite = await fetch(
+      url + `/api/v1/events/${events[0].id}/attestations`,
+      {
+        method: "POST",
+        headers: { cookie, origin: url, "content-type": "application/json" },
+        body: "{}",
+      },
+    );
+    expect(invite.status).toBe(200);
+    const token = (await invite.json()).path.split("/").pop();
+    expect((await fetch(url + `/confirm/${token}`)).status).toBe(200);
+    const evidence = await (
+      await fetch(url + `/api/v1/attest/${token}`)
+    ).json();
+    expect(evidence.files.length).toBeGreaterThan(0);
+    expect(
+      (
+        await fetch(
+          url + `/api/v1/attest/${token}/files/${evidence.files[0].id}`,
+        )
+      ).status,
+    ).toBe(200);
+    const confirmed = await fetch(url + `/api/v1/attest/${token}`, {
+      method: "POST",
+      headers: { origin: url, "content-type": "application/json" },
+      body: JSON.stringify({ status: "confirmed" }),
+    });
+    expect(confirmed.status).toBe(200);
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),

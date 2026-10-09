@@ -34,6 +34,110 @@ function postgres(path: string, connectionFailures = 0) {
 }
 
 describe("hosted PostgreSQL workspace", () => {
+  it("persists public sharing, optional client contacts and queued emails in PostgreSQL", async () => {
+    const db = postgres("memory://");
+    const app = buildServer({ database: db });
+    try {
+      const signup = await app.inject({
+        method: "POST",
+        url: "/api/v1/auth/signup",
+        payload: {
+          name: "Sharing Owner",
+          email: "pg-share@example.invalid",
+          password: "TwelveCharacters!",
+          businessName: "PG Studio",
+        },
+      });
+      const cookie = String(signup.headers["set-cookie"]).split(";")[0];
+      const headers = { cookie };
+      const created = await app.inject({
+        method: "POST",
+        url: "/api/v1/events",
+        headers,
+        payload: {
+          title: "PG shared work",
+          service: "Design",
+          counterparty: "Client",
+          currency: "NGN",
+          channel: "direct",
+        },
+      });
+      expect(created.statusCode, created.body).toBe(200);
+      const event = created.json();
+      const uploaded = await app.inject({
+        method: "POST",
+        url: `/api/v1/events/${event.id}/evidence`,
+        headers,
+        payload: {
+          kind: "agreement",
+          name: "contract.txt",
+          mime: "text/plain",
+          base64: Buffer.from("PG contract original").toString("base64"),
+        },
+      });
+      expect(uploaded.statusCode, uploaded.body).toBe(200);
+      const file = uploaded.json().evidence[0];
+      const invite = await app.inject({
+        method: "POST",
+        url: `/api/v1/events/${event.id}/attestations`,
+        headers,
+        payload: {},
+      });
+      expect(invite.statusCode, invite.body).toBe(200);
+      const token = invite.json().path.split("/").pop();
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/v1/attest/${token}`,
+        payload: {
+          status: "confirmed",
+          name: "Client",
+          email: "private@example.invalid",
+          comment: "On time",
+          reviewConsent: true,
+        },
+      });
+      expect(response.statusCode, response.body).toBe(200);
+      const saved = await db.event(event.id);
+      expect(saved.attestations[0].email).toBe("private@example.invalid");
+      expect(saved.attestations[0].notification_status).toBe("not_configured");
+      const share = await app.inject({
+        method: "POST",
+        url: "/api/v1/shares",
+        headers,
+        payload: { title: "PG Pack", eventIds: [event.id] },
+      });
+      expect(share.statusCode, share.body).toBe(200);
+      const sharedToken = share.json().path.split("/").pop();
+      const publicView = await app.inject({
+        url: `/api/v1/shared/${sharedToken}`,
+      });
+      expect(publicView.statusCode, publicView.body).toBe(200);
+      expect(publicView.json().events[0].confirmations[0].review).toBe(
+        "On time",
+      );
+      expect(publicView.body).not.toContain("private@example.invalid");
+      const download = await app.inject({
+        url: `/api/v1/shared/${sharedToken}/files/${file.id}`,
+      });
+      expect(download.body).toBe("PG contract original");
+      expect(
+        (
+          await app.inject({
+            method: "POST",
+            url: `/api/v1/shares/${share.json().id}/revoke`,
+            headers,
+            payload: {},
+          })
+        ).statusCode,
+      ).toBe(200);
+      expect(
+        (await app.inject({ url: `/api/v1/shared/${sharedToken}` })).statusCode,
+      ).toBe(410);
+    } finally {
+      await app.close();
+    }
+  });
+
   it("recovers signup after a database wake timeout without caching the failure", async () => {
     const db = postgres("memory://", 2);
     const app = buildServer({ database: db });

@@ -1,3 +1,4 @@
+import { sharingSchema } from "./sharing-schema.js";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -54,6 +55,7 @@ export class MvpDatabase {
       CREATE INDEX IF NOT EXISTS events_business ON commercial_events(business_id);
       CREATE INDEX IF NOT EXISTS audit_business ON audit_logs(business_id);
     `);
+    this.db.exec(sharingSchema);
   }
   one(sql: string, ...params: any[]): any {
     return this.db.prepare(sql).get(...params);
@@ -128,7 +130,7 @@ export class MvpDatabase {
       eventId,
     ).map((x) => JSON.parse(x.data));
     event.attestations = this.all(
-      "SELECT id,status,revision,name,comment,created_at,responded_at FROM attestations WHERE event_id=? ORDER BY rowid DESC",
+      "SELECT a.id,a.status,a.revision,a.name,a.comment,a.created_at,a.responded_at,d.email,d.phone,d.review_consent,n.status AS notification_status FROM attestations a LEFT JOIN confirmation_details d ON d.attestation_id=a.id LEFT JOIN notification_outbox n ON n.attestation_id=a.id WHERE a.event_id=? ORDER BY a.rowid DESC",
       eventId,
     );
     event.evidence = this.all(

@@ -1,3 +1,12 @@
+import {
+  evidenceSnapshot,
+  registerSharing,
+  sendSnapshotFile,
+} from "./sharing.js";
+import {
+  deliverNotifications,
+  type NotificationSender,
+} from "./notifications.js";
 import type { PostgresDatabase } from "./postgres.js";
 import { isDatabaseConnectionError } from "./postgres.js";
 import type { FastifyInstance } from "fastify";
@@ -20,6 +29,20 @@ import { AgreementSchema, InvoiceSchema, PaymentSchema } from "../model.js";
 import type { DocumentExtractor } from "../extraction.js";
 import { ExtractionRequestSchema } from "../extraction.js";
 import scenarios from "../../data/five-scenarios.json" with { type: "json" };
+function reviewerEvent(event: any) {
+  return {
+    ...event,
+    attestations: event.attestations.map((entry: any) => ({
+      id: entry.id,
+      status: entry.status,
+      revision: entry.revision,
+      created_at: entry.created_at,
+      responded_at: entry.responded_at,
+      name: entry.review_consent ? entry.name : "",
+      comment: entry.review_consent ? entry.comment : "",
+    })),
+  };
+}
 const eventSchema = z.object({
   title: z.string().trim().min(2).max(150),
   service: z.string().trim().min(2).max(500),
@@ -40,6 +63,7 @@ export function registerMvp(
   db: MvpDatabase | PostgresDatabase,
   extractor?: DocumentExtractor,
   mono?: MonoTransactionsAdapter,
+  notificationSender?: NotificationSender,
 ) {
   const sessionUser = async (request: any) => {
     const cookie = (request.headers.cookie ?? "")
@@ -80,7 +104,10 @@ export function registerMvp(
       )
     )
       fail(404, "Event not found.");
-    return { user, event };
+    return {
+      user,
+      event: user.role === "reviewer" ? reviewerEvent(event) : event,
+    };
   };
   const safeUser = (user: any) => ({
     id: user.id,
@@ -165,6 +192,7 @@ export function registerMvp(
               : error.message,
         });
       });
+      registerSharing(api, db, requireUser, notificationSender);
       api.post("/auth/signup", async (request, reply) => {
         const input = body(
           request,
@@ -301,7 +329,10 @@ export function registerMvp(
                 "SELECT id FROM commercial_events WHERE business_id=? ORDER BY updated_at DESC",
                 user.business_id,
               );
-        return await sequence(rows, async (row) => await db.event(row.id));
+        return await sequence(rows, async (row) => {
+          const event = await db.event(row.id);
+          return user.role === "reviewer" ? reviewerEvent(event) : event;
+        });
       });
       api.post("/events", async (request) => {
         const user = await requireUser(request);
@@ -582,20 +613,34 @@ export function registerMvp(
       }>("/events/:id/attestations", async (request) => {
         const { user, event } = await owned(request, request.params.id);
         const token = randomBytes(32).toString("hex");
-        await db.run(
-          "INSERT INTO attestations(id,event_id,token_hash,revision,created_at) VALUES (?,?,?,?,?)",
-          id(),
-          event.id,
-          hash(token),
-          event.revision,
-          now(),
-        );
-        await db.audit(
-          user.business_id,
-          user.id,
-          event.id,
-          "attestation.invitation.created",
-        );
+        const invitationId = id();
+        await db.atomic(async () => {
+          const current = await db.one(
+            "SELECT revision FROM commercial_events WHERE id=?",
+            event.id,
+          );
+          if (current.revision !== event.revision)
+            fail(409, "Evidence changed while creating the link. Try again.");
+          await db.run(
+            "INSERT INTO attestations(id,event_id,token_hash,revision,created_at) VALUES (?,?,?,?,?)",
+            invitationId,
+            event.id,
+            hash(token),
+            event.revision,
+            now(),
+          );
+          await db.run(
+            "INSERT INTO confirmation_details(attestation_id,snapshot) VALUES (?,?)",
+            invitationId,
+            JSON.stringify(evidenceSnapshot(event)),
+          );
+          await db.audit(
+            user.business_id,
+            user.id,
+            event.id,
+            "attestation.invitation.created",
+          );
+        });
         return {
           path: "/confirm/" + token,
           revision: event.revision,
@@ -616,36 +661,47 @@ export function registerMvp(
         if (Date.now() - Date.parse(entry.created_at) > 14 * 86400000)
           fail(410, "This invitation expired. Ask for a new link.");
         const event = await db.event(entry.event_id);
+        if (!event) fail(410, "This Commercial Evidence was removed.");
         if (entry.revision !== event.revision)
           fail(409, "This event changed. Ask for a new confirmation link.");
-        return {
-          title: event.title,
-          service: event.service,
-          business: event.business_name,
-          counterparty: event.counterparty,
-          invoice: event.invoice
-            ? {
-                amount: event.invoice.amount,
-                invoiceNumber: event.invoice.invoiceNumber,
-              }
-            : null,
-          agreement: event.agreement
-            ? {
-                amount: event.agreement.amount,
-                service: event.agreement.service,
-              }
-            : null,
-          payments: event.transactions.map((x: any) => ({
-            amount: x.amount,
-            direction: x.direction,
-            date: x.transactionDate,
-            counterparty: x.counterparty,
-          })),
-          fulfillment: event.fulfillment,
-          status: entry.status,
-          revision: entry.revision,
-        };
+        const details = await db.one(
+          "SELECT snapshot FROM confirmation_details WHERE attestation_id=?",
+          entry.id,
+        );
+        const snapshot = details
+          ? JSON.parse(details.snapshot)
+          : evidenceSnapshot(event);
+        return { ...snapshot, status: entry.status, revision: entry.revision };
       });
+      api.get<{ Params: { token: string; fileId: string } }>(
+        "/attest/:token/files/:fileId",
+        async (request, reply) => {
+          const entry = await db.one(
+            "SELECT * FROM attestations WHERE token_hash=?",
+            hash(request.params.token),
+          );
+          if (!entry) fail(404, "Invitation not found.");
+          if (Date.now() - Date.parse(entry.created_at) > 14 * 86400000)
+            fail(410, "This invitation expired.");
+          const event = await db.event(entry.event_id);
+          if (!event) fail(410, "This Commercial Evidence was removed.");
+          if (entry.revision !== event.revision)
+            fail(
+              409,
+              "This evidence changed. Ask for a new confirmation link.",
+            );
+          const details = await db.one(
+            "SELECT snapshot FROM confirmation_details WHERE attestation_id=?",
+            entry.id,
+          );
+          return sendSnapshotFile(
+            db,
+            details ? JSON.parse(details.snapshot) : evidenceSnapshot(event),
+            request.params.fileId,
+            reply,
+          );
+        },
+      );
       api.post<{
         Params: {
           token: string;
@@ -654,7 +710,17 @@ export function registerMvp(
         const input = body(
           request,
           z.object({
-            name: z.string().trim().min(2).max(150),
+            name: z.string().trim().max(150).default(""),
+            email: z
+              .union([z.string().email().max(200), z.literal("")])
+              .default(""),
+            phone: z
+              .string()
+              .trim()
+              .max(30)
+              .regex(/^[+()0-9\s-]*$/)
+              .default(""),
+            reviewConsent: z.boolean().default(false),
             status: z.enum(["confirmed", "disputed"]),
             comment: z.string().max(2000).default(""),
           }),
@@ -669,16 +735,51 @@ export function registerMvp(
         const event = await db.event(entry.event_id);
         if (entry.status !== "pending")
           fail(409, "This invitation has already been answered.");
+        if (!event) fail(410, "This Commercial Evidence was removed.");
         if (entry.revision !== event.revision)
           fail(409, "This event changed. Ask for a new link.");
         await db.atomic(async () => {
-          await db.run(
-            "UPDATE attestations SET status=?,name=?,comment=?,responded_at=? WHERE id=?",
+          const current = await db.one(
+            "SELECT revision FROM commercial_events WHERE id=?",
+            event.id,
+          );
+          if (!current) fail(410, "This Commercial Evidence was removed.");
+          if (current.revision !== entry.revision)
+            fail(
+              409,
+              "This evidence changed. Ask for a new confirmation link.",
+            );
+          const recorded = await db.run(
+            "UPDATE attestations SET status=?,name=?,comment=?,responded_at=? WHERE id=? AND status='pending'",
             input.status,
             input.name,
             input.comment,
             now(),
             entry.id,
+          );
+          if (!recorded.changes)
+            fail(409, "This invitation has already been answered.");
+          const owner = await db.one(
+            "SELECT u.email FROM businesses b JOIN users u ON u.id=b.user_id WHERE b.id=?",
+            event.business_id,
+          );
+          await db.run(
+            "INSERT INTO confirmation_details(attestation_id,snapshot,email,phone,review_consent) VALUES (?,?,?,?,?) ON CONFLICT(attestation_id) DO UPDATE SET email=excluded.email,phone=excluded.phone,review_consent=excluded.review_consent",
+            entry.id,
+            JSON.stringify(evidenceSnapshot(event)),
+            input.email,
+            input.phone,
+            input.reviewConsent ? 1 : 0,
+          );
+          await db.run(
+            "INSERT INTO notification_outbox(id,business_id,attestation_id,recipient,subject,body,created_at) VALUES (?,?,?,?,?,?,?)",
+            id(),
+            event.business_id,
+            entry.id,
+            owner.email,
+            "Client response: " + event.title,
+            `${input.name || "An unnamed client"} ${input.status === "confirmed" ? "confirmed" : "disputed"} your Commercial Evidence: ${event.title}.\n\n${input.comment}\n\nOpen your account to review the response: ${process.env.APP_BASE_URL || "https://audittrak-hosted.vercel.app"}`,
+            now(),
           );
           await db.run(
             "UPDATE commercial_events SET submitted=0 WHERE id=?",
@@ -695,6 +796,12 @@ export function registerMvp(
             "attestation." + input.status,
           );
         });
+        // A provider outage cannot roll back or erase the client response.
+        try {
+          await deliverNotifications(db, event.business_id, notificationSender);
+        } catch (error) {
+          request.log.error(error);
+        }
         return { ok: true, status: input.status };
       });
       api.post<{
@@ -800,7 +907,7 @@ export function registerMvp(
           event.id,
           "institutional.note.created",
         );
-        return await db.event(event.id);
+        return reviewerEvent(await db.event(event.id));
       });
       api.get("/profile", async (request) => {
         const user = await requireUser(request);
@@ -1074,8 +1181,19 @@ export function registerMvp(
   app.get("/", async (_request, reply) =>
     reply.type("text/html").send(await readFile(publicFile("app/index.html"))),
   );
+  app.get("/share/:token", async (_request, reply) =>
+    reply
+      .header("referrer-policy", "no-referrer")
+      .header("x-robots-tag", "noindex, nofollow")
+      .type("text/html")
+      .send(await readFile(publicFile("app/index.html"))),
+  );
   app.get("/confirm/:token", async (_request, reply) =>
-    reply.type("text/html").send(await readFile(publicFile("app/index.html"))),
+    reply
+      .header("referrer-policy", "no-referrer")
+      .header("x-robots-tag", "noindex, nofollow")
+      .type("text/html")
+      .send(await readFile(publicFile("app/index.html"))),
   );
   app.get<{
     Params: {
